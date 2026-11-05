@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>भक्ति रचना — क्रिएटर फ्लो</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Yatra+One&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<!-- DB:CSS -->
+<style>
+  /* 600 shades from the Beyond UI v2.0 "Colors" collection (not in db.css yet) — text-card backgrounds only */
+  /* 50 / 200 / 800 shades from the Beyond UI v2.0 "Colors" collection (not in db.css yet) — text-card backgrounds and text only */
+  :root { --db-violet-50: #F5F3FF; --db-violet-200: #DDD6FE; --db-violet-800: #5B21B6; --db-blue-50: #EFF6FF; --db-blue-200: #BFDBFE; --db-blue-800: #1E40AF;
+          --db-teal-50: #F0FDFA; --db-teal-200: #99F6E4; --db-teal-800: #115E59; --db-pink-50: #FDF2F8; --db-pink-200: #FBCFE8; --db-pink-800: #9D174D;
+          --db-rose-50: #FFF1F2; --db-rose-200: #FECDD3; --db-rose-800: #9F1239; --db-green-800: #166534; --db-amber-50: #FFFBEB; --db-yellow-800: #854D0E; }
+  /* Frame canvas */
+  body { margin: 0; min-height: 100vh; display: flex; flex-wrap: wrap; gap: 24px 40px; justify-content: center; align-items: flex-start; padding: 32px 16px; background: var(--db-base-100); }
+  .screen-label { font: 500 12px/18px Inter, sans-serif; color: var(--db-text-tertiary); margin: 0 0 8px; }
+  .screen { width: min(360px, calc(100vw - 32px)); height: 800px; position: relative; overflow: hidden; border-radius: 28px; box-shadow: var(--db-shadow-xl); background: var(--db-base-0); }
+  .proto { width: 260px; display: grid; gap: 12px; font: 400 13px/20px Inter, sans-serif; color: var(--db-text-secondary); }
+  .proto h2 { font: 600 14px/22px Inter, sans-serif; color: var(--db-text-primary); margin: 0; }
+  .proto h3 { font: 600 12px/18px Inter, sans-serif; color: var(--db-text-tertiary); margin: 8px 0 0; }
+  .proto p { margin: 0; }
+  .proto__list { display: grid; gap: 4px; }
+  .proto__btn { min-height: 36px; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--db-border); background: var(--db-base-0); font: 500 13px/20px Inter, sans-serif; color: var(--db-text-secondary); text-align: left; cursor: pointer; }
+  .proto__btn.is-active { border-color: var(--db-primary-500); background: var(--db-primary-50); color: var(--db-primary-700); }
+  .proto__btn:disabled { opacity: .45; cursor: not-allowed; }
+  .proto__state { padding: 12px; border-radius: 12px; background: var(--db-base-0); border: 1px solid var(--db-border); font: 400 12px/18px Inter, sans-serif; }
+
+  /* Views */
+  .view { position: absolute; inset: 0; display: none; flex-direction: column; background: var(--db-bg-screen); }
+  .view.is-active { display: flex; }
+  .view__scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .view__scroll::-webkit-scrollbar { display: none; }
+  .view__foot { flex: none; padding: 12px 16px 16px; display: grid; gap: 8px; background: var(--db-base-0); border-top: 1px solid var(--db-border); }
+  .view__foot .db-helper { text-align: center; }
+  .statusbar { height: 8px; flex: none; }
+  .db-row__body { display: grid; }
+  .cr-pad { padding: 8px 16px 24px; display: grid; gap: 24px; align-content: start; }
+  .cr-q { display: grid; gap: 4px; }
+  .cr-q h1, .cr-q p, .cr-q h2 { margin: 0; }
+  .cr-sec { display: grid; gap: 12px; }
+  .cr-sec__head { display: flex; align-items: baseline; gap: 8px; }
+  .cr-sec__head h2 { margin: 0; flex: 1; font: 600 16px/26px var(--db-font-ui); }
+  .cr-sec__head .db-num { color: var(--db-text-tertiary); font-size: 12px; }
+  .cr-sec > p { margin: -8px 0 0; }
+  .cr-info-y { background: var(--db-yellow-50); border-color: var(--db-yellow-200); }
+  .cr-info-y > .db-icon { color: var(--db-amber-700); }
+  .cr-strip { display: flex; align-items: flex-start; gap: 8px; padding: 8px 16px; background: var(--db-yellow-50); border-top: 1px solid var(--db-yellow-200); border-bottom: 1px solid var(--db-yellow-200); font: 400 14px/22px var(--db-font-ui); color: var(--db-text-secondary); }
+  .cr-strip > .db-icon { color: var(--db-amber-700); margin-top: 1px; }
+  .cr-strip > span:not(.db-icon) { flex: 1; min-width: 0; }
+  .cr-strip__close { margin: -5px -8px -5px 0; color: var(--db-text-secondary); flex: none; }
+  .cr-strip.is-error { background: var(--db-error-50); border-color: var(--db-error-200); color: var(--db-error-700); }
+  .cr-strip.is-error > .db-icon { color: var(--db-error-600); }
+
+  /* 01 Choose type */
+  .cr-types { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cr-type { display: grid; gap: 12px; align-content: start; padding: 16px; min-height: 164px; border-radius: var(--db-radius-xl); border: 1px solid var(--db-border); background: var(--db-base-0); text-align: left; cursor: pointer; font-family: var(--db-font-ui); color: var(--db-text-primary); }
+  .cr-type:hover { border-color: var(--db-primary-300); background: var(--db-primary-50); }
+  .cr-type__icon { width: 64px; height: 64px; object-fit: contain; display: block; margin: -4px 0 -4px -4px; }
+  .cr-type__title { font: 600 16px/26px var(--db-font-ui); }
+  .cr-type__desc { font: 400 12px/18px var(--db-font-ui); color: var(--db-text-tertiary); margin-top: -8px; }
+
+  /* 02 Status format */
+  .cr-formats { display: grid; gap: 12px; }
+  .cr-format { display: flex; align-items: center; gap: 16px; padding: 12px; border-radius: var(--db-radius-xl); border: 1px solid var(--db-border); background: var(--db-base-0); cursor: pointer; text-align: left; font-family: var(--db-font-ui); color: var(--db-text-primary); }
+  .cr-format:hover { border-color: var(--db-primary-300); background: var(--db-primary-50); }
+  .cr-format__art { position: relative; width: 72px; height: 128px; border-radius: var(--db-radius-l); overflow: hidden; flex: none; background: var(--db-primary-100); }
+  .cr-format__art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cr-format__art .db-icon { position: absolute; inset: 0; margin: auto; width: 32px; height: 32px; border-radius: 50%; background: var(--db-scrim-40); color: #fff; display: grid; place-items: center; font-size: 20px; }
+  .cr-format__body { flex: 1; display: grid; gap: 4px; }
+  .cr-format__limits { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--db-text-tertiary); }
+  .cr-format__limits span { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* 03 Gallery */
+  .cr-gal-tabs { padding: 0 16px 12px; }
+  .cr-gal-limit { margin: 0 0 4px; }
+  .cr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px 4px 16px; }
+  .cr-cell { position: relative; aspect-ratio: 3 / 4; border: 0; padding: 0; background: var(--db-primary-100); overflow: hidden; cursor: pointer; font-family: var(--db-font-ui); }
+  .cr-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cr-cell__dur { position: absolute; right: 4px; bottom: 4px; }
+  .cr-cell__kind { position: absolute; left: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--db-scrim-40); color: #fff; display: grid; place-items: center; }
+  .cr-cell.is-too-big img { filter: grayscale(.7) brightness(.55); }
+  .cr-cell__big { position: absolute; left: 4px; right: 4px; bottom: 4px; justify-content: center; background: var(--db-error-600); }
+  .cr-cell--action { display: grid; place-items: center; align-content: center; gap: 4px; background: var(--db-base-900); color: #fff; font: 500 12px/18px var(--db-font-ui); }
+  .cr-cell--action.is-files { background: var(--db-primary-100); color: var(--db-primary-800); }
+  .cr-audio-list { display: grid; padding: 4px 16px 16px; }
+  .cr-audio-list .db-row { border-bottom: 1px solid var(--db-border); cursor: pointer; background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; text-align: left; font-family: var(--db-font-ui); }
+  .cr-audio-pick { margin: 12px 0 4px; }
+  .cr-audio-list__head { margin: 16px 0 0; font: 600 14px/22px var(--db-font-ui); color: var(--db-text-secondary); }
+  .cr-audio-list .db-row.is-too-big .db-row__title { color: var(--db-text-disabled); }
+  .cr-audio-list .db-thumb { display: grid; place-items: center; color: var(--db-primary-700); }
+  .cr-upload { position: absolute; inset: 0; z-index: 12; display: none; place-items: center; background: var(--db-scrim-60); }
+  .cr-upload.is-open { display: grid; }
+  .cr-upload__card { width: 264px; padding: 20px; border-radius: var(--db-radius-xxl); background: var(--db-base-0); display: grid; gap: 12px; justify-items: center; text-align: center; }
+  .cr-upload__card img { width: 72px; height: 96px; border-radius: var(--db-radius-l); object-fit: cover; background: var(--db-primary-100); }
+  .cr-upload__card .db-progress { width: 100%; }
+
+  /* Frame stage (status preview) */
+  .fx-stage { --w: 210px; position: relative; width: var(--w); aspect-ratio: 9 / 16; font-size: calc(var(--w) / 30); background: #000; border-radius: var(--db-radius-xl); overflow: hidden; display: flex; flex-direction: column; flex: none; }
+  .fx-window { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+  .fx-stage--feed { aspect-ratio: auto; border-radius: 0; }
+  .fx-stage--feed .fx-window { flex: none; aspect-ratio: 2 / 3; }
+  .fx-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+  .fx-media.is-cover { object-fit: cover; }
+  .fx-media.is-playing { animation: fx-kenburns 9s ease-in-out infinite alternate; }
+  @keyframes fx-kenburns { from { transform: scale(1); } to { transform: scale(1.12) translateY(-2%); } }
+  .fx-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: var(--db-grad-image-scrim); pointer-events: none; }
+  .fx-row { position: absolute; display: flex; align-items: center; gap: .9em; z-index: 3; }
+  .fx-row--br { right: 2em; bottom: 2.2em; flex-direction: row; gap: 2.2em; }
+  .fx-row--bl { left: 2em; bottom: 2.2em; flex-direction: row-reverse; gap: 2.2em; }
+  .fx-row--bc { left: 0; right: 0; bottom: 1.4em; flex-direction: column-reverse; gap: 2em; }
+  .fx-row--top { left: 0; right: 0; bottom: 2.4em; flex-direction: column; }
+  .fx-row--bc .fx-name, .fx-row--top .fx-name { text-align: center; }
+  .fx-row--br .fx-name { text-align: right; }
+  .fx-pic { position: relative; width: 10em; height: 10em; flex: none; }
+  .fx-glow { position: absolute; inset: -1.2em; border-radius: 50%; background: radial-gradient(circle, var(--g) 0%, color-mix(in srgb, var(--g) 50%, transparent) 55%, transparent 75%); opacity: .6; filter: blur(2px); animation: fx-glow 2.2s ease-in-out 1.4s infinite; }
+  .fx-garland { position: absolute; inset: -1.6em; z-index: 2; pointer-events: none; }
+  .fx-garland svg { width: 100%; height: 100%; display: block; }
+  .fx-photo { position: absolute; inset: 8%; border-radius: 50%; overflow: hidden; z-index: 1; background: var(--db-primary-200); }
+  .fx-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .fx-photo .db-icon { position: absolute; inset: 0; margin: auto; width: 1em; height: 1em; font-size: 4em; color: var(--db-primary-700); }
+  .fx-name { font: 700 1.7em/1.15 var(--db-font-ui); color: #fff; text-shadow: 0 2px 10px rgb(0 0 0 / .55); overflow-wrap: anywhere; max-width: 13em; }
+  .fx-strip { flex: none; padding: .5em 1.2em; text-align: center; background: linear-gradient(135deg, var(--db-primary-900), var(--db-primary-800)); color: #fff; }
+  .fx-strip--top { font: 700 1.5em/1.3 var(--db-font-ui); text-shadow: 0 2px 4px rgb(0 0 0 / .45); }
+  .fx-strip--bottom { background: linear-gradient(135deg, var(--db-primary-800), var(--db-primary-900)); display: grid; gap: .1em; }
+  .fx-strip--bottom b { font: 700 1.2em/1.3 var(--db-font-ui); }
+  .fx-strip--bottom span { font: 500 .9em/1.3 var(--db-font-latin); color: var(--db-amber-400); }
+  .fx-play { position: absolute; top: .8em; right: .8em; z-index: 4; display: inline-flex; align-items: center; gap: .3em; height: 2.2em; padding: 0 .7em; border-radius: 999px; background: var(--db-scrim-40); color: #fff; font: 600 1em/1 var(--db-font-latin); }
+  .fx-play .db-icon { font-size: 1.4em; }
+  /* animations from the frame template builder */
+  .is-anim .fx-anim-spin { animation: fx-spin 12s linear infinite; }
+  .is-anim .fx-anim-pulse { animation: fx-pulse 1.8s ease-in-out infinite; }
+  .is-anim .fx-anim-float { animation: fx-float 3s ease-in-out infinite; }
+  .is-anim .fx-anim-osc { animation: fx-osc 2.4s ease-in-out infinite; }
+  .is-anim .fx-in-right .fx-pic { animation: fx-pic-in 1.4s cubic-bezier(.22,1,.36,1) both; }
+  .is-anim .fx-in-right .fx-name { animation: fx-name-in .9s cubic-bezier(.22,1,.36,1) .7s both; }
+  .is-anim .fx-in-left .fx-pic { animation: fx-pic-in-l 1.4s cubic-bezier(.22,1,.36,1) both; }
+  .is-anim .fx-in-left .fx-name { animation: fx-name-in-l .9s cubic-bezier(.22,1,.36,1) .7s both; }
+  .is-anim .fx-in-appear .fx-pic { animation: fx-appear 1s cubic-bezier(.22,1,.36,1) both; }
+  .is-anim .fx-in-appear .fx-name { animation: fx-fade-up .8s ease .6s both; }
+  @keyframes fx-glow { 0%, 100% { opacity: .55; transform: scale(.94); } 50% { opacity: 1; transform: scale(1.12); } }
+  @keyframes fx-spin { to { transform: rotate(360deg); } }
+  @keyframes fx-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  @keyframes fx-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.6em); } }
+  @keyframes fx-osc { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+  @keyframes fx-pic-in { from { opacity: 0; transform: translateX(160%); } to { opacity: 1; transform: none; } }
+  @keyframes fx-pic-in-l { from { opacity: 0; transform: translateX(-160%); } to { opacity: 1; transform: none; } }
+  @keyframes fx-name-in { from { opacity: 0; transform: translateX(2em); } to { opacity: 1; transform: none; } }
+  @keyframes fx-name-in-l { from { opacity: 0; transform: translateX(-2em); } to { opacity: 1; transform: none; } }
+  @keyframes fx-appear { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+  @keyframes fx-fade-up { from { opacity: 0; transform: translateY(1em); } to { opacity: 1; transform: none; } }
+
+  /* 05 Frame editor (utility dark) */
+  .cr-dark { background: var(--db-jap-surface); color: var(--db-base-0); }
+  .cr-dark .db-appbar .db-icon-btn { color: var(--db-base-0); }
+  .cr-editor { flex: 1; min-height: 0; display: grid; grid-template-rows: 1fr auto auto; gap: 16px; padding: 4px 0 0; }
+  .cr-editor__stage { min-height: 0; display: grid; place-items: center; }
+  .cr-editor__stage .fx-stage { --w: 248px; }
+  .cr-pills { display: flex; justify-content: center; gap: 8px; }
+  .cr-pill { height: 40px; padding: 0 16px 0 6px; font-size: 14px; line-height: 22px; border: 0; cursor: pointer; gap: 8px; font-family: var(--db-font-ui); }
+  .cr-pill.is-plain { padding-left: 12px; }
+  .cr-pill img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--db-primary-200); }
+  .cr-frames { display: flex; gap: 12px; overflow-x: auto; padding: 4px 16px; scrollbar-width: none; align-items: flex-start; }
+  .cr-frames::-webkit-scrollbar { display: none; }
+  .cr-frames__sep { width: 1px; align-self: stretch; background: var(--db-base-700); margin: 4px 0 24px; flex: none; }
+  .cr-fthumb { position: relative; display: grid; justify-items: center; gap: 6px; width: 68px; flex: none; background: none; border: 0; padding: 0; cursor: pointer; color: var(--db-base-400); font: 400 12px/18px var(--db-font-ui); }
+  .cr-fthumb__ring { position: relative; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; border: 2px solid transparent; }
+  .cr-fthumb__ring svg { width: 56px; height: 56px; }
+  .cr-fthumb__none { width: 52px; height: 52px; border-radius: 50%; background: var(--db-base-750); color: var(--db-base-400); display: grid; place-items: center; }
+  .cr-fthumb.has-strips .cr-fthumb__ring::before, .cr-fthumb.has-strips .cr-fthumb__ring::after { content: ""; position: absolute; left: 10px; right: 10px; height: 6px; border-radius: 3px; background: var(--db-primary-800); }
+  .cr-fthumb.has-strips .cr-fthumb__ring::before { top: 2px; }
+  .cr-fthumb.has-strips .cr-fthumb__ring::after { bottom: 2px; }
+  .cr-fthumb.is-selected { color: var(--db-base-0); font-weight: 600; }
+  .cr-fthumb.is-selected .cr-fthumb__ring { border-color: var(--db-primary-500); }
+  .cr-fthumb__check { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); width: 22px; height: 22px; border-radius: 50%; background: var(--db-primary-500); color: #fff; display: none; place-items: center; }
+  .cr-fthumb.is-selected .cr-fthumb__check { display: grid; }
+  .cr-dark .view__foot { background: var(--db-jap-surface); border-top-color: var(--db-base-750); }
+
+  /* Profile step */
+  .cr-avatar-pick { justify-self: center; position: relative; width: 120px; height: 120px; border-radius: 50%; border: 2px dashed var(--db-primary-300); background: var(--db-primary-50); display: grid; place-items: center; cursor: pointer; padding: 0; color: var(--db-primary-700); }
+  .cr-avatar-pick img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .cr-avatar-pick.has-photo { border-style: solid; border-color: var(--db-primary-500); }
+  .cr-avatar-pick__badge { position: absolute; right: 2px; bottom: 2px; width: 36px; height: 36px; border-radius: 50%; background: var(--db-primary-500); color: #fff; display: grid; place-items: center; border: 3px solid var(--db-base-0); }
+  .cr-avatar-pick .db-icon.is-big { font-size: 40px; }
+
+  /* Details (status + reel) */
+  .cr-media-row { display: flex; gap: 12px; align-items: stretch; }
+  .cr-media-row .fx-stage { --w: 112px; border-radius: var(--db-radius-l); }
+  .cr-media-row .db-field { flex: 1; min-width: 0; align-content: start; }
+  .cr-media-row textarea.db-input { min-height: 0; height: 100%; flex: 1; }
+  .cr-media-row__field { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .cr-count { align-self: flex-end; font: 400 12px/18px var(--db-font-latin); color: var(--db-text-tertiary); }
+  .cr-langrow { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--db-radius-l); background: var(--db-base-0); border: 1px solid var(--db-border); }
+  .cr-langrow__icon { width: 36px; height: 36px; border-radius: 50%; background: var(--db-primary-100); color: var(--db-primary-700); display: grid; place-items: center; flex: none; }
+  .cr-langrow__body { flex: 1; min-width: 0; display: grid; }
+  .cr-linkrow { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Tags */
+  .cr-taggroup { display: grid; gap: 8px; }
+  .cr-taggroup__label { font: 500 12px/18px var(--db-font-ui); color: var(--db-text-tertiary); }
+  .cr-tagrow { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cr-tagrow .db-chip { height: 32px; padding: 0 12px; font-size: 14px; }
+  .cr-tagrow .db-chip:disabled { opacity: .45; cursor: not-allowed; }
+  .cr-tagrow .db-chip .db-icon { margin-left: -2px; }
+
+  /* Bhajan */
+  .cr-audio { display: grid; gap: 12px; padding: 16px; border-radius: var(--db-radius-xl); background: var(--db-base-0); border: 1px solid var(--db-border); }
+  .cr-audio__top { display: flex; align-items: center; gap: 12px; }
+  .cr-audio .db-play { width: 48px; height: 48px; flex: none; }
+  .cr-wave { display: flex; align-items: center; gap: 2px; height: 36px; }
+  .cr-wave i { flex: 1; border-radius: 2px; background: var(--db-base-300); }
+  .cr-wave i.is-on { background: var(--db-primary-500); }
+  .cr-cover { display: flex; gap: 16px; align-items: center; }
+  .cr-cover__box { position: relative; width: 104px; height: 104px; border-radius: var(--db-radius-l); flex: none; overflow: hidden; border: 1.5px dashed var(--db-primary-300); background: var(--db-primary-50); color: var(--db-primary-700); display: grid; place-items: center; align-content: center; gap: 2px; cursor: pointer; padding: 0; font: 500 12px/18px var(--db-font-ui); }
+  .cr-cover__box.has-img { border: 0; }
+  .cr-cover__body { display: grid; gap: 4px; justify-items: start; }
+  .crop-mini { position: absolute; left: 0; top: 0; width: 296px; height: 296px; transform-origin: 0 0; overflow: hidden; }
+  .crop-mini img, .crop__img { position: absolute; left: 50%; top: 50%; max-width: none; user-select: none; -webkit-user-drag: none; }
+
+  /* Crop */
+  .crop { flex: 1; display: grid; align-content: center; justify-items: center; gap: 24px; padding: 0 16px; }
+  .crop__area { position: relative; width: 328px; height: 400px; overflow: hidden; touch-action: none; cursor: grab; }
+  .crop__area:active { cursor: grabbing; }
+  .crop__win { position: absolute; left: 16px; top: 52px; width: 296px; height: 296px; overflow: visible; }
+  .crop__win .crop__img { opacity: 1; }
+  .crop__shade { position: absolute; left: 16px; top: 52px; width: 296px; height: 296px; box-shadow: 0 0 0 400px rgb(11 15 20 / .7); border: 2px solid var(--db-base-0); border-radius: var(--db-radius-l); pointer-events: none; }
+  .crop__grid { position: absolute; inset: 0; background: linear-gradient(90deg, transparent 33.1%, rgb(255 255 255 / .35) 33.3%, transparent 33.5%, transparent 66.5%, rgb(255 255 255 / .35) 66.7%, transparent 66.9%), linear-gradient(0deg, transparent 33.1%, rgb(255 255 255 / .35) 33.3%, transparent 33.5%, transparent 66.5%, rgb(255 255 255 / .35) 66.7%, transparent 66.9%); }
+  .crop__zoom { width: 100%; display: flex; align-items: center; gap: 12px; color: var(--db-base-400); }
+  .crop__zoom input { flex: 1; accent-color: var(--db-primary-500); }
+  .crop__hint { margin: -8px 0 0; color: var(--db-base-400); display: inline-flex; align-items: center; gap: 6px; }
+  .crop__rot { border: 0; cursor: pointer; height: 36px; gap: 4px; font-size: 12px; }
+  .crop__area { touch-action: none; }
+
+  /* Post compose */
+  .cr-author { display: flex; align-items: center; gap: 12px; }
+  .cr-author img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--db-primary-100); }
+  .cr-author__body { flex: 1; min-width: 0; display: grid; }
+  .cr-compose { display: grid; gap: 4px; }
+  .cr-compose textarea.db-input { min-height: 54px; resize: none; overflow: hidden; font: 400 18px/28px var(--db-font-ui); }
+  .cr-attach { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--db-radius-l); border: 1.5px dashed var(--db-primary-300); background: var(--db-primary-50); cursor: pointer; width: 100%; text-align: left; font-family: var(--db-font-ui); color: var(--db-text-primary); }
+  .cr-attach__icon { width: 40px; height: 40px; border-radius: 50%; background: var(--db-primary-100); color: var(--db-primary-700); display: grid; place-items: center; flex: none; }
+  .cr-attached { position: relative; border-radius: var(--db-radius-xl); overflow: hidden; background: var(--db-base-900); }
+  .cr-attached img, .cr-attached video { width: 100%; max-height: 320px; object-fit: contain; display: block; }
+  .cr-attached .db-round { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; cursor: pointer; }
+  .cr-attached .db-tag { position: absolute; left: 8px; bottom: 8px; }
+  .cr-styles { display: flex; gap: 10px; overflow-x: auto; padding: 2px; margin: -2px; scrollbar-width: none; }
+  .cr-styles::-webkit-scrollbar { display: none; }
+  .cr-swatch { flex: none; display: grid; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--db-base-0); box-shadow: 0 0 0 1px var(--db-border-strong); cursor: pointer; padding: 0; }
+  .cr-swatch.is-selected { box-shadow: 0 0 0 2px var(--db-primary-500); }
+
+  /* Text card (from the app simulator: 4:5, inner border, auto-sized bold text, ॥ ॐ ॥) */
+  .tc { --tw: 328px; position: relative; width: var(--tw); aspect-ratio: 4 / 5; font-size: calc(var(--tw) / 1080 * 100); display: grid; place-items: center; overflow: hidden; border-radius: var(--db-radius-xl); }
+  .tc__card { position: absolute; inset: .44em; border: .03em solid var(--a); border-radius: .28em; opacity: .55; }
+  .tc__txt { position: relative; padding: 0 1.3em; font-weight: 700; line-height: 1.35; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .tc__txt.is-empty { opacity: .55; font-weight: 400; }
+  .tc__mark { position: absolute; left: 0; right: 0; bottom: .84em; text-align: center; font-size: .44em; color: var(--a); opacity: .8; }
+  /* text cards: Colour/50 → Colour/200 gradient background, Colour/800 text, border and ॐ mark */
+  .tc { background: linear-gradient(160deg, var(--bg1), var(--bg)); color: var(--fg); --a: var(--fg); }
+  .tc--violet { --bg1: var(--db-violet-50); --bg: var(--db-violet-200); --fg: var(--db-violet-800); }
+  .tc--blue { --bg1: var(--db-blue-50); --bg: var(--db-blue-200); --fg: var(--db-blue-800); }
+  .tc--teal { --bg1: var(--db-teal-50); --bg: var(--db-teal-200); --fg: var(--db-teal-800); }
+  .tc--green { --bg1: var(--db-green-50); --bg: var(--db-green-200); --fg: var(--db-green-800); }
+  .tc--yellow { --bg1: var(--db-yellow-50); --bg: var(--db-yellow-200); --fg: var(--db-yellow-800); }
+  .tc--amber { --bg1: var(--db-amber-50); --bg: var(--db-amber-200); --fg: var(--db-amber-800); }
+  .tc--saffron { --bg1: var(--db-primary-50); --bg: var(--db-primary-200); --fg: var(--db-primary-800); }
+  .tc--pink { --bg1: var(--db-pink-50); --bg: var(--db-pink-200); --fg: var(--db-pink-800); }
+  .tc--rose { --bg1: var(--db-rose-50); --bg: var(--db-rose-200); --fg: var(--db-rose-800); }
+  .cr-swatch { background: linear-gradient(160deg, var(--bg1), var(--bg)); border-color: var(--db-base-0); }
+  .cr-swatch::after { content: ""; display: block; width: 12px; height: 12px; margin: auto; border-radius: 50%; background: var(--fg); }
+  .cr-fold { border-radius: var(--db-radius-l); border: 1px solid var(--db-border); background: var(--db-base-0); overflow: hidden; }
+  .cr-fold__head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 12px 8px 16px; border: 0; background: none; cursor: pointer; text-align: left; font-family: var(--db-font-ui); color: var(--db-text-primary); }
+  .cr-fold__head .db-icon:last-child { margin-left: auto; color: var(--db-text-tertiary); transition: transform var(--db-dur) var(--db-ease); }
+  .cr-fold.is-open .cr-fold__head .db-icon:last-child { transform: rotate(180deg); }
+  .cr-fold__dot { width: 24px; height: 24px; border-radius: 50%; flex: none; background: var(--bg); box-shadow: inset 0 0 0 6px var(--bg), inset 0 0 0 12px var(--fg); }
+  .cr-fold__body { display: grid; gap: 12px; padding: 0 16px 16px; }
+
+  /* Camera */
+  .cam { position: absolute; inset: 0; background: var(--db-base-950); display: flex; flex-direction: column; color: var(--db-ritual-text); }
+  .cam__view { position: relative; flex: 1; overflow: hidden; }
+  .cam__view img, .cam__view video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam__view img { animation: cam-sway 6s ease-in-out infinite alternate; }
+  @keyframes cam-sway { from { transform: scale(1.06) translateX(-1%); } to { transform: scale(1.1) translateX(1%); } }
+  .cam__top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; z-index: 2; }
+  .cam__top .db-icon-btn { background: rgb(11 15 20 / .5); color: var(--db-ritual-text); }
+  .cam__bar { flex: none; height: 136px; display: flex; align-items: center; justify-content: space-around; padding: 0 24px; }
+  .cam__shutter { width: 72px; height: 72px; border-radius: 50%; border: 4px solid var(--db-base-0); background: transparent; padding: 4px; cursor: pointer; }
+  .cam__shutter i { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--db-base-0); }
+  .cam__side { width: 48px; height: 48px; border-radius: var(--db-radius-l); overflow: hidden; border: 2px solid var(--db-base-0); padding: 0; cursor: pointer; background: var(--db-base-750); }
+  .cam__side img { width: 100%; height: 100%; object-fit: cover; }
+  .cam__flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 3; }
+  .cam__flash.is-on { animation: cam-flash .35s ease-out; }
+  @keyframes cam-flash { 0% { opacity: .9; } 100% { opacity: 0; } }
+  .cam__hint { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; z-index: 2; }
+
+  /* Result */
+  .cr-state { display: grid; gap: 12px; padding: 16px; border-radius: var(--db-radius-xl); border: 1px solid; }
+  .cr-state--pending { background: var(--db-amber-100); border-color: var(--db-amber-300); }
+  .cr-state--posted { background: var(--db-green-50); border-color: var(--db-green-200); }
+  .cr-state--rejected { background: var(--db-error-50); border-color: var(--db-error-200); }
+  .cr-state__head { display: flex; align-items: center; gap: 12px; }
+  .cr-state__icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #fff; }
+  .cr-state--pending .cr-state__icon { background: var(--db-amber-600); }
+  .cr-state--posted .cr-state__icon { background: var(--db-green-600); }
+  .cr-state--rejected .cr-state__icon { background: var(--db-error-600); }
+  .cr-state__head h2 { margin: 0; font: 600 16px/26px var(--db-font-ui); }
+  .cr-state p { margin: 0; }
+  .cr-reason { display: grid; gap: 4px; padding: 12px; border-radius: var(--db-radius-l); background: var(--db-base-0); }
+  .cr-reason__k { font: 600 14px/22px var(--db-font-ui); color: var(--db-error-700); }
+  .cr-steps { display: flex; align-items: center; gap: 4px; }
+  .cr-step { display: inline-flex; align-items: center; gap: 4px; font: 500 12px/18px var(--db-font-ui); color: var(--db-text-tertiary); white-space: nowrap; }
+  .cr-step .db-icon { font-size: 16px; }
+  .cr-step.is-done { color: var(--db-text-primary); }
+  .cr-step.is-done .db-icon { color: var(--db-green-600); }
+  .cr-step.is-now { color: var(--db-amber-800); font-weight: 600; }
+  .cr-step.is-fail { color: var(--db-error-700); font-weight: 600; }
+  .cr-step__line { flex: 1; min-width: 8px; height: 1px; background: var(--db-border-strong); }
+  .cr-feed { margin: 0 -16px; padding: 12px 0 16px; background: var(--db-base-0); border-top: 1px solid var(--db-border); border-bottom: 1px solid var(--db-border); display: grid; gap: 8px; }
+  .cr-feed__head { display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; }
+  .cr-feed__av { width: 36px; height: 36px; border-radius: 50%; padding: 2px; background: var(--db-grad-soft-gold); flex: none; }
+  .cr-feed__av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+  .cr-feed__title { flex: 1; min-width: 0; font: 600 18px/28px var(--db-font-ui); }
+  .cr-feed__more { color: var(--db-text-secondary); }
+  .cr-feed__media { position: relative; margin: 0 16px 0 60px; border-radius: var(--db-radius-xl); overflow: hidden; background: var(--db-base-950); }
+  .cr-feed__media .fx-stage { --w: 284px; }
+  .cr-feed__media > img.cr-feed__fill, .cr-feed__media > video.cr-feed__fill { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; }
+  .cr-feed__media > img.cr-feed__fill.is-45, .cr-feed__media > video.cr-feed__fill.is-45 { aspect-ratio: 4 / 5; }
+  .cr-feed__media .tc { --tw: 284px; border-radius: 0; }
+  .cr-feed__edit { position: absolute; top: 12px; right: 12px; z-index: 5; width: 36px; height: 36px; cursor: pointer; }
+  .cr-feed__sound { position: absolute; right: 12px; bottom: 12px; z-index: 5; }
+  .cr-feed__dur { position: absolute; left: 12px; bottom: 12px; z-index: 5; }
+  .cr-feed__bhajan { position: relative; aspect-ratio: 1; }
+  .cr-feed__bhajan > img, .cr-feed__bhajan .crop-mini { position: absolute; }
+  .cr-feed__bhajan > img { inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cr-feed__bhajan .db-hero__scrim, .cr-feed__scrim { position: absolute; inset: 40% 0 0; background: var(--db-grad-image-scrim); }
+  .cr-feed__bhajan-bar { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 12px; color: #fff; }
+  .cr-feed__bhajan-bar .db-play { width: 44px; height: 44px; flex: none; }
+  .cr-feed__text { margin: 0 16px 0 60px; display: grid; gap: 4px; }
+  .cr-feed__text p { margin: 0; }
+  .cr-feed__lang { display: inline-flex; align-items: center; gap: 4px; font: 400 12px/18px var(--db-font-ui); color: var(--db-text-tertiary); }
+  .cr-feed__tags { display: flex; flex-wrap: wrap; gap: 0 8px; font: 500 12px/18px var(--db-font-ui); color: var(--db-primary-700); }
+  .cr-feed__actions { display: flex; align-items: center; gap: 16px; padding: 4px 16px 0 60px; }
+  .cr-feed__actions .db-like:disabled { color: var(--db-text-disabled); cursor: not-allowed; }
+  .cr-feed__actions .db-btn { margin-left: auto; height: 44px; padding: 0 28px; }
+  .cr-lock { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .db-btn .db-icon { margin-left: -4px; }
+
+  /* Sheets + toast */
+  .cr-overlay { position: absolute; inset: 0; z-index: 10; display: none; flex-direction: column; justify-content: flex-end; }
+  .cr-overlay.is-open { display: flex; }
+  .cr-overlay > .db-scrim { position: absolute; inset: 0; }
+  .cr-overlay > .db-sheet { position: relative; max-height: 92%; overflow-y: auto; }
+  .cr-confirm { display: grid; gap: 16px; }
+  .cr-confirm__icon { justify-self: center; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--db-primary-100); color: var(--db-primary-700); }
+  .cr-confirm__icon.is-warn { background: var(--db-yellow-100); color: var(--db-amber-700); }
+  .cr-confirm__icon .db-icon { font-size: 32px; }
+  .cr-confirm__text { display: grid; gap: 4px; text-align: center; }
+  .cr-confirm__text h2, .cr-confirm__text p { margin: 0; }
+  .cr-confirm__actions { display: grid; gap: 8px; }
+  .cr-btn-danger { color: var(--db-error-700); }
+  .cr-sum { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: var(--db-radius-l); border: 1px solid var(--db-border); background: var(--db-base-50); }
+  .cr-sum__thumb { position: relative; width: 56px; height: 56px; border-radius: var(--db-radius-s); overflow: hidden; flex: none; background: var(--db-primary-100); display: grid; place-items: center; color: var(--db-primary-700); }
+  .cr-sum__thumb > img { width: 100%; height: 100%; object-fit: cover; }
+  .cr-sum__thumb .tc { --tw: 56px; border-radius: 0; }
+  .cr-sum__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .cr-sum__row { display: flex; gap: 6px; font: 400 12px/18px var(--db-font-ui); color: var(--db-text-secondary); }
+  .cr-sum__row b { font-weight: 600; color: var(--db-text-primary); }
+  .cr-toast { position: absolute; left: 50%; bottom: 104px; z-index: 20; transform: translateX(-50%) translateY(8px); opacity: 0; pointer-events: none; transition: opacity var(--db-dur) var(--db-ease), transform var(--db-dur) var(--db-ease); max-width: calc(100% - 32px); width: max-content; }
+  .cr-toast.is-show { opacity: 1; transform: translateX(-50%); }
+  .cr-hidden-input { display: none; }
+</style>
+</head>
+<body>
+<!-- DB:ICONS -->
+<!-- Art used by the script; inline.py embeds these so bhakti-creator.html is self-contained -->
+<div hidden id="art">
+  <img data-id="mandir" src="images/creator/mandir.jpg" alt="घर के मंदिर में गणेश जी और जलते दीये">
+  <img data-id="aarti" src="images/creator/aarti.jpg" alt="हाथों में आरती की थाली">
+  <img data-id="temple" src="images/creator/temple.jpg" alt="सूर्योदय में मंदिर का गोपुरम">
+  <img data-id="ghat" src="images/creator/ghat.jpg" alt="वाराणसी घाट पर गंगा आरती">
+  <img data-id="rangoli" src="images/creator/rangoli.jpg" alt="गेंदे के फूलों की रंगोली और दीये">
+  <img data-id="tulsi" src="images/creator/tulsi.jpg" alt="आंगन में तुलसी जी और दीया">
+  <img data-id="jhula" src="images/creator/jhula.jpg" alt="झूले पर लड्डू गोपाल">
+  <img data-id="mandali" src="images/creator/mandali.jpg" alt="घर में भजन संध्या">
+  <img data-id="user" src="images/creator/user.jpg" alt="प्रवीण जी की फोटो">
+  <img data-id="krishna" src="images/creator/krishna.jpg" alt="बांसुरी बजाते कृष्ण जी">
+  <img data-id="icon-status" src="images/creator/icon-status.png" alt=""><img data-id="icon-reel" src="images/creator/icon-reel.png" alt=""><img data-id="icon-bhajan" src="images/creator/icon-bhajan.png" alt=""><img data-id="icon-post" src="images/creator/icon-post.png" alt="">
+</div>
+<input type="file" class="cr-hidden-input" id="filePick">
+
+<figure style="margin:0">
+  <p class="screen-label" id="frameLabel">01_Create/ChooseType</p>
+  <div class="screen db" id="phone">
+
+    <!-- 01 Choose type -->
+    <section class="view db-screen" id="v-type" data-label="01_Create/ChooseType">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="बंद करें" onclick="toast('होम पर वापस')"><span class="db-icon" aria-hidden="true">close</span></button><h1 class="db-appbar__title">रचना बनाएं</h1></header>
+      <div class="view__scroll"><div class="cr-pad">
+        <div class="cr-q"><h2 class="db-h6" id="typeHello">प्रवीण जी, आज क्या बनाना चाहेंगे?</h2><p class="db-p-s db-t2">आपकी रचना Daily Bhakti टीम की जांच के बाद सब भक्तों को दिखेगी।</p></div>
+        <div class="cr-types" id="typeList"></div>
+        <div class="db-info cr-info-y"><span class="db-icon db-icon--20" aria-hidden="true">verified_user</span><span class="db-p-s db-t2">सिर्फ़ भक्ति से जुड़ी अपनी फोटो, वीडियो, भजन और विचार डालें। किसी और का कंटेंट या प्रचार स्वीकार नहीं होगा।</span></div>
+      </div></div>
+    </section>
+
+    <!-- 02 Status format -->
+    <section class="view db-screen" id="v-statusFormat" data-label="02_Status/ChooseFormat">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="वापस" onclick="back()"><span class="db-icon" aria-hidden="true">arrow_back</span></button><h1 class="db-appbar__title">स्टेटस बनाएं</h1></header>
+      <div class="view__scroll"><div class="cr-pad">
+        <div class="cr-q"><h2 class="db-h6">किस तरह का स्टेटस बनाएं?</h2><p class="db-p-s db-t2">अगले कदम में आपकी फोटो और नाम वाला फ्रेम लगेगा।</p></div>
+        <div class="cr-formats" id="formatList"></div>
+      </div></div>
+    </section>
+
+    <!-- 03 Gallery (media library) -->
+    <section class="view" id="v-gallery" data-label="03_Gallery/Photo" style="background:var(--db-base-0)">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="वापस" onclick="back()"><span class="db-icon" aria-hidden="true">arrow_back</span></button><h1 class="db-appbar__title" id="galTitle">फोटो चुनें</h1></header>
+      <div class="cr-gal-limit" id="galLimit"></div>
+      <div class="view__scroll" id="galBody"></div>
+      <div class="cr-upload" id="upload"><div class="cr-upload__card"><img id="upImg" alt=""><span class="db-p-m db-semibold" id="upText">अपलोड हो रहा है…</span><div class="db-progress"><i id="upBar" style="width:0%"></i></div><span class="db-caption db-t3 db-num" id="upPct">0%</span></div></div>
+    </section>
+
+    <!-- 04 Profile (only when photo or name is missing) -->
+    <section class="view db-screen" id="v-profile" data-label="04_Status/AddPhotoName">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="वापस" onclick="back()"><span class="db-icon" aria-hidden="true">arrow_back</span></button><h1 class="db-appbar__title">फ्रेम के लिए जानकारी</h1></header>
+      <div class="view__scroll"><div class="cr-pad" id="profileBody"></div></div>
+      <div class="view__foot"><span class="db-helper" id="profileHelp"></span><button class="db-btn db-btn--block" id="profileNext" onclick="Profile.save()">आगे बढ़ें</button></div>
+    </section>
+
+    <!-- 05 Frame editor -->
+    <section class="view cr-dark" id="v-frame" data-label="05_Status/ChooseFrame">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="वापस" onclick="back()"><span class="db-icon" aria-hidden="true">arrow_back</span></button><h1 class="db-appbar__title">फ्रेम चुनें</h1></header>
+      <div class="cr-editor">
+        <div class="cr-editor__stage" id="editorStage"></div>
+        <div class="cr-pills" id="editorPills"></div>
+        <div class="cr-frames" id="frameList" role="listbox" aria-label="फ्रेम"></div>
+      </div>
+      <div class="view__foot"><button class="db-btn db-btn--block" onclick="Frame.next()">आगे बढ़ें</button></div>
+    </section>
+
+    <!-- 06 Details (status + reel) -->
+    <section class="view db-screen" id="v-details" data-label="06_Status/Details">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="वापस" onclick="back()"><span class="db-icon" aria-hidden="true">arrow_back</span></button><h1 class="db-appbar__title" id="detailsTitle">पोस्ट की जानकारी</h1></header>
+      <div class="view__scroll"><div class="cr-pad" id="detailsBody"></div></div>
+      <div class="view__foot"><span class="db-helper" id="detailsHelp"></span><button class="db-btn db-btn--block" id="detailsSend" onclick="Submit.ask()">स्वीकृति के लिए भेजें</button></div>
+    </section>
+
+    <!-- 07 Bhajan details -->
+    <section class="view db-screen" id="v-bhajan" data-label="07_Bhajan/Details">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="वापस" onclick="back()"><span class="db-icon" aria-hidden="true">arrow_back</span></button><h1 class="db-appbar__title">भजन की जानकारी</h1></header>
+      <div class="view__scroll"><div class="cr-pad" id="bhajanBody"></div></div>
+      <div class="view__foot"><span class="db-helper" id="bhajanHelp"></span><button class="db-btn db-btn--block" id="bhajanSend" onclick="Submit.ask()">स्वीकृति के लिए भेजें</button></div>
+    </section>
+
+    <!-- 08 Crop cover -->
+    <section class="view cr-dark" id="v-crop" data-label="08_Bhajan/CropCover">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="वापस" onclick="back()"><span class="db-icon" aria-hidden="true">arrow_back</span></button><h1 class="db-appbar__title">कवर फोटो काटें</h1></header>
+      <div class="crop">
+        <div class="crop__area" id="cropArea">
+          <div class="crop__win"><img class="crop__img" id="cropImg" alt="कवर फोटो" draggable="false"></div>
+          <div class="crop__shade"><div class="crop__grid"></div></div>
+        </div>
+        <p class="db-p-s crop__hint"><span class="db-icon db-icon--20" aria-hidden="true">pinch</span>खिसकाएं, दो उंगलियों से ज़ूम करें और घुमाएं</p>
+        <div class="crop__zoom"><span class="db-icon db-icon--20" aria-hidden="true">zoom_out</span><input type="range" id="cropZoom" min="1" max="4" step="0.01" value="1" aria-label="ज़ूम"><span class="db-icon db-icon--20" aria-hidden="true">zoom_in</span>
+          <button class="db-jap-pill crop__rot" onclick="Crop.rotate90()" aria-label="90 डिग्री घुमाएं"><span class="db-icon db-icon--20" aria-hidden="true">rotate_right</span><span class="db-num" id="cropAngle">0°</span></button></div>
+      </div>
+      <div class="view__foot"><button class="db-btn db-btn--block" onclick="Crop.done()">कवर लगाएं</button></div>
+    </section>
+
+    <!-- 09 Post compose -->
+    <section class="view db-screen" id="v-post" data-label="09_Post/Compose">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="वापस" onclick="back()"><span class="db-icon" aria-hidden="true">arrow_back</span></button><h1 class="db-appbar__title">भक्ति पोस्ट</h1></header>
+      <div class="view__scroll"><div class="cr-pad" id="postBody"></div></div>
+      <div class="view__foot"><span class="db-helper" id="postHelp"></span><button class="db-btn db-btn--block" id="postSend" onclick="Submit.ask()">स्वीकृति के लिए भेजें</button></div>
+    </section>
+
+    <!-- 10 Camera -->
+    <section class="view" id="v-camera" data-label="10_Post/Camera">
+      <div class="cam">
+        <div class="cam__view" id="camView">
+          <div class="cam__top"><button class="db-icon-btn" aria-label="बंद करें" onclick="Camera.close()"><span class="db-icon" aria-hidden="true">close</span></button><button class="db-icon-btn" aria-label="कैमरा बदलें" onclick="toast('सामने का कैमरा')"><span class="db-icon" aria-hidden="true">cameraswitch</span></button></div>
+          <div id="camFeed"></div>
+          <p class="cam__hint db-caption" id="camHint">फोटो लेने के लिए बटन दबाएं</p>
+          <div class="cam__flash" id="camFlash"></div>
+        </div>
+        <div class="cam__bar">
+          <button class="cam__side" aria-label="गैलरी खोलें" onclick="Camera.close()"><img id="camGalThumb" alt=""></button>
+          <button class="cam__shutter" aria-label="फोटो लें" onclick="Camera.snap()"><i></i></button>
+          <span style="width:48px"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 Result / status -->
+    <section class="view db-screen" id="v-result" data-label="11_MyPost/Pending">
+      <div class="statusbar"></div>
+      <header class="db-appbar"><button class="db-icon-btn" aria-label="बंद करें" onclick="toast('होम पर वापस')"><span class="db-icon" aria-hidden="true">close</span></button><h1 class="db-appbar__title">आपकी रचना</h1></header>
+      <div class="view__scroll"><div class="cr-pad" id="resultBody" style="gap:16px"></div></div>
+      <div class="view__foot" id="resultFoot"></div>
+    </section>
+
+    <!-- Sheets -->
+    <div class="cr-overlay" id="confirmSheet">
+      <div class="db-scrim" onclick="Sheet.close()"></div>
+      <section class="db-sheet" role="dialog" aria-modal="true" aria-labelledby="cfTitle" id="confirmBody"></section>
+    </div>
+    <div class="cr-overlay" id="nameSheet">
+      <div class="db-scrim" onclick="Sheet.close()"></div>
+      <section class="db-sheet" role="dialog" aria-label="नाम बदलें">
+        <span class="db-sheet__handle"></span>
+        <div class="db-sheet__head"><h2 class="db-sheet__title">फ्रेम पर नाम</h2><button class="db-icon-btn db-icon-btn--sm db-icon-btn--filled" aria-label="बंद करें" onclick="Sheet.close()"><span class="db-icon db-icon--20" aria-hidden="true">close</span></button></div>
+        <label class="db-field"><span class="db-label">आपका नाम</span><input class="db-input" id="nameInput" maxlength="24" placeholder="जैसे प्रवीण कुमार"><span class="db-helper">24 अक्षर तक। यही नाम आपकी प्रोफ़ाइल में भी दिखेगा।</span></label>
+        <button class="db-btn db-btn--block" onclick="Frame.saveName()">नाम सेव करें</button>
+      </section>
+    </div>
+
+    <span class="db-toast cr-toast" id="toast" role="status"></span>
+  </div>
+</figure>
+
+<aside class="proto" aria-label="Prototype controls">
+  <h2>Daily Bhakti · Creator flow</h2>
+  <p>Clickable flow: choose type → status (photo/video + frame), bhakti reel, bhajan (audio + square cover) or bhakti post (text + optional media) → tags → approval status. Built only from db.css.</p>
+  <h3>Screens</h3>
+  <div class="proto__list" id="protoNav"></div>
+  <h3>Daily Bhakti team (after sending)</h3>
+  <div class="proto__list">
+    <button class="proto__btn" id="tApprove" onclick="Team.approve()">Approve → पोस्ट हो गई</button>
+    <button class="proto__btn" id="tRejectTags" onclick="Team.reject('wrong_tags')">Reject · wrong tags</button>
+    <button class="proto__btn" id="tRejectCopy" onclick="Team.reject('copyright')">Reject · copyright</button>
+    <button class="proto__btn" id="tRejectQual" onclick="Team.reject('low_quality')">Reject · low quality</button>
+  </div>
+  <h3>Confirmation sheets</h3>
+  <div class="proto__list">
+    <button class="proto__btn" onclick="Demo.leave()">12_Sheet/LeaveFlow</button>
+    <button class="proto__btn" onclick="Demo.confirm()">13_Sheet/ConfirmSubmit</button>
+  </div>
+  <h3>User profile</h3>
+  <div class="proto__list">
+    <button class="proto__btn" id="pToggle" onclick="Demo.toggleProfile()"></button>
+    <button class="proto__btn" id="pLang" onclick="Demo.cycleLang()"></button>
+    <button class="proto__btn" onclick="Demo.reset()">Restart flow</button>
+  </div>
+  <h3>Live state</h3>
+  <div class="proto__state" id="protoState"></div>
+</aside>
+
+<script>
+/* ---------- Content ---------- */
+const art = id => document.querySelector(`#art [data-id="${id}"]`).src;
+const MB = 1024 * 1024;
+// Limits come from the app simulator config (limits.status / reel / bhajan / imageMaxBytes)
+const LIMITS = {
+  image:  { bytes: 15 * MB },
+  status: { minSec: 3, maxSec: 30, bytes: 200 * MB },
+  reel:   { minSec: 5, maxSec: 90, bytes: 300 * MB },
+  post:   { minSec: 3, maxSec: 90, bytes: 300 * MB },
+  bhajan: { minSec: 10, maxSec: 900, bytes: 50 * MB },
+  text: 500, tags: 5, resubmits: 3,
+};
+const TYPES = [
+  { id: 'status', icon: 'filter_frames', title: 'स्टेटस', desc: 'फोटो या वीडियो पर आपकी फोटो और नाम वाला फ्रेम' },
+  { id: 'reel',   icon: 'movie',         title: 'भक्ति रील', desc: '90 सेकंड तक का भक्ति वीडियो' },
+  { id: 'bhajan', icon: 'music_note',    title: 'भजन',     desc: 'अपनी आवाज़ में भजन, आरती या चालीसा' },
+  { id: 'post',   icon: 'edit_note',     title: 'भक्ति पोस्ट', desc: 'अपने भाव, अनुभव या सुविचार, फोटो के साथ या बिना' },
+];
+const TYPE_NAME = { status: 'स्टेटस', reel: 'भक्ति रील', bhajan: 'भजन', post: 'भक्ति पोस्ट' };
+const FEM = { status: false, reel: true, bhajan: false, post: true };   // grammatical gender for आपका/आपकी, दिख रहा/रही
+const g = (m, f) => FEM[S.type] ? f : m;
+// Sample phone gallery. size in MB, dur in seconds
+const GALLERY = {
+  image: [
+    { id: 'mandir', name: 'IMG_2031.jpg', size: 3.2 }, { id: 'aarti', name: 'IMG_2044.jpg', size: 2.8 },
+    { id: 'rangoli', name: 'IMG_1988.jpg', size: 2.2 }, { id: 'temple', name: 'IMG_1870.jpg', size: 4.1 },
+    { id: 'ghat', name: 'PANO_0412.jpg', size: 24.6 }, { id: 'tulsi', name: 'IMG_1802.jpg', size: 3.6 },
+    { id: 'jhula', name: 'IMG_1760.jpg', size: 2.9 }, { id: 'krishna', name: 'krishna-painting.jpg', size: 5.4 },
+    { id: 'user', name: 'selfie_0915.jpg', size: 1.9 },
+  ],
+  video: [
+    { id: 'ghat', name: 'VID_ganga_aarti.mp4', size: 38, dur: 24 }, { id: 'jhula', name: 'VID_janmashtami.mp4', size: 21, dur: 18 },
+    { id: 'mandali', name: 'VID_bhajan_sandhya.mp4', size: 96, dur: 72 }, { id: 'aarti', name: 'VID_sandhya_aarti.mp4', size: 410, dur: 252 },
+    { id: 'mandir', name: 'VID_ganesh_puja.mp4', size: 58, dur: 45 }, { id: 'temple', name: 'VID_mandir_darshan.mp4', size: 12, dur: 9 },
+  ],
+  audio: [
+    { id: 'a1', name: 'हनुमान चालीसा — मेरी आवाज़.m4a', size: 9.1, dur: 581 },
+    { id: 'a2', name: 'श्याम भजन रिकॉर्डिंग.mp3', size: 6.0, dur: 365 },
+    { id: 'a3', name: 'सुबह की आरती.m4a', size: 3.1, dur: 200 },
+    { id: 'a4', name: 'सत्संग पूरा.mp3', size: 62.4, dur: 2910 },
+    { id: 'a5', name: 'Voice 014.m4a', size: 0.1, dur: 6 },
+  ],
+};
+// Tags from the simulator taxonomy, in Hindi with honorifics
+const TAGS = [
+  ['देवी-देवता', [['ram','राम जी'],['krishna','कृष्ण जी'],['shiv','शिव जी'],['hanuman','हनुमान जी'],['ganesh','गणेश जी'],['durga','माँ दुर्गा'],['lakshmi','माँ लक्ष्मी'],['sai-baba','साईं बाबा'],['vitthal','विट्ठल जी'],['murugan','मुरुगन जी'],['venkateswara','वेंकटेश्वर जी'],['ayyappa','अयप्पा जी']]],
+  ['त्योहार', [['diwali','दिवाली'],['navratri','नवरात्रि'],['ganesh-chaturthi','गणेश चतुर्थी'],['janmashtami','जन्माष्टमी'],['mahashivratri','महाशिवरात्रि'],['ram-navami','राम नवमी'],['sawan','सावन'],['pongal','पोंगल'],['ugadi','उगादी']]],
+  ['भक्ति', [['aarti','आरती'],['bhajan','भजन'],['mantra','मंत्र'],['katha','कथा'],['darshan','दर्शन'],['chalisa','चालीसा'],['quote','सुविचार']]],
+  ['अवसर', [['good-morning','सुप्रभात'],['good-night','शुभ रात्रि'],['monday','सोमवार'],['tuesday','मंगलवार'],['thursday','गुरुवार'],['saturday','शनिवार']]],
+];
+const TAG_NAME = Object.fromEntries(TAGS.flatMap(([, list]) => list));
+// Frames follow the frame template builder: garland + glow + layout (+ optional strips) + entry animation
+const FRAMES = [
+  { id: 'f1', name: 'फ्रेम 1', garland: 'gold',     glow: 'var(--db-amber-400)',   layout: 'bl',  anim: 'osc',   entry: 'left' },
+  { id: 'f2', name: 'फ्रेम 2', garland: 'mandala',  glow: 'var(--db-primary-500)', layout: 'br',  anim: 'spin',  entry: 'right' },
+  { id: 'f3', name: 'फ्रेम 3', garland: 'marigold', glow: 'var(--db-yellow-300)',  layout: 'bl',  anim: 'spin',  entry: 'appear' },
+  { id: 'f4', name: 'फ्रेम 4', garland: 'lotus',    glow: 'var(--db-primary-200)', layout: 'bc',  anim: 'pulse', entry: 'appear' },
+  { id: 'f5', name: 'फ्रेम 5', garland: 'gold',     glow: 'var(--db-amber-300)',   layout: 'top', anim: 'float', entry: 'appear', strips: true },
+  { id: 'f6', name: 'फ्रेम 6', garland: 'rudraksh', glow: 'var(--db-primary-400)', layout: 'br',  anim: 'osc',   entry: 'right' },
+];
+const TEXT_STYLES = [['violet', 'बैंगनी'], ['blue', 'नीला'], ['teal', 'मोरपंखी'], ['green', 'हरा'], ['yellow', 'पीला'], ['amber', 'सुनहरा'], ['saffron', 'केसरिया'], ['pink', 'गुलाबी'], ['rose', 'लाल']];
+const REASONS = {
+  wrong_tags:  { k: 'टैग कंटेंट से मेल नहीं खाते', note: 'लगाए गए टैग इस रचना से मेल नहीं खाते। जिन देवी-देवता या त्योहार की यह रचना है, वही टैग लगाकर दोबारा भेजें।' },
+  copyright:   { k: 'किसी और का कंटेंट', note: 'इसमें किसी फ़िल्म का गाना या किसी और चैनल का वीडियो लग रहा है। अपना बनाया हुआ कंटेंट ही डालें।' },
+  low_quality: { k: 'फोटो या आवाज़ साफ़ नहीं है', note: 'मीडिया बहुत धुंधला है और ठीक से दिख या सुन नहीं रहा। रोशनी में दोबारा लेकर भेजें।' },
+};
+const LANGS = ['हिन्दी', 'मराठी', 'తెలుగు', 'ಕನ್ನಡ', 'தமிழ்'];
+const LANG_NAME = ['हिन्दी', 'मराठी', 'तेलुगु', 'कन्नड़', 'तमिल'];
+
+/* ---------- State ---------- */
+const fresh = () => ({
+  type: null, format: null, media: null, frame: 'f1', caption: '', title: '', text: '', textStyle: 'violet', previewOpen: false, previewTouched: false,
+  tags: [], cover: null, playing: false, galleryFor: 'main', galError: '',
+  post: null,            // { status: 'pending'|'posted'|'rejected', reason, resubmits, sentAt }
+  editing: false,
+});
+const PROFILE_FULL = { name: 'प्रवीण कुमार', photo: 'user' };
+let S = fresh();
+let P = { ...PROFILE_FULL, lang: 0 };   // user profile (name, photo id or object URL, language index)
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const icon = (n, size = 20, extra = '') => `<span class="db-icon${size === 24 ? '' : ' db-icon--' + size}${extra}" aria-hidden="true">${n}</span>`;
+const dur = s => s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}` : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const durWords = s => s < 60 ? `${Math.round(s)} सेकंड` : s % 60 === 0 ? `${s / 60} मिनट` : `${dur(s)} मिनट`;
+const mb = n => n < 1 ? `${Math.round(n * 1024)} KB` : `${n < 10 ? n.toFixed(1) : Math.round(n)} MB`;
+const photoSrc = () => P.photo ? (P.photo.startsWith('blob:') || P.photo.startsWith('data:') ? P.photo : art(P.photo)) : '';
+const firstName = () => (P.name.trim().split(/\s+/)[0] || 'भक्त');
+const hello = () => P.name ? `${firstName()} जी` : 'आप';
+const greet = () => { const h = new Date().getHours(); return h < 12 ? 'सुप्रभात' : h < 17 ? 'जय श्री कृष्ण' : h < 21 ? 'शुभ संध्या' : 'शुभ रात्रि'; };
+function toast(msg, ic = 'check') { const t = $('#toast'); t.innerHTML = icon(ic) + esc(msg); t.classList.add('is-show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('is-show'), 2400); }
+const locked = () => S.post && S.post.status === 'pending';
+
+/* ---------- Navigation ---------- */
+const SCREENS = [
+  ['type', '01_Create/ChooseType'], ['statusFormat', '02_Status/ChooseFormat'], ['gallery', '03_Gallery'], ['profile', '04_Status/AddPhotoName'],
+  ['frame', '05_Status/ChooseFrame'], ['details', '06_Details (Status · Reel)'], ['bhajan', '07_Bhajan/Details'], ['crop', '08_Bhajan/CropCover'],
+  ['post', '09_Post/Compose'], ['camera', '10_Post/Camera'], ['result', '11_MyPost/Status'],
+];
+const stack = []; let cur = null;
+function go(id, opts = {}) {
+  Sheet.close();
+  if (!opts.jump) prepare(id);
+  if (cur && cur !== id && !opts.replace) stack.push(cur);
+  if (cur === 'camera' && id !== 'camera') Camera.stop();
+  if (cur === 'gallery' && id !== 'gallery') S.galError = '';
+  cur = id;
+  $$('.view').forEach(v => v.classList.toggle('is-active', v.id === 'v-' + id));
+  $('#v-' + id).querySelector('.view__scroll')?.scrollTo(0, 0);
+  Render[id]?.();
+  label(); renderProto();
+}
+function back(force) {
+  if (Sheet.cur) { Sheet.close(); return; }
+  const target = stack[stack.length - 1];
+  if (!force && S.editing && target === 'result' && cur !== 'gallery' && cur !== 'crop' && cur !== 'camera') { Leave.ask('edit'); return; }
+  if (!force && !S.post && cur !== 'type' && (!target || target === 'type') && hasProgress()) { Leave.ask('flow'); return; }
+  const p = stack.pop(); if (p) go(p, { replace: true }); else toast('होम पर वापस');
+}
+// anything the user would lose by leaving the flow
+const hasProgress = () => !!(S.media || S.text.trim() || S.caption.trim() || S.title.trim() || S.tags.length || S.cover);
+const Leave = {
+  ask(kind) {
+    const edit = kind === 'edit';
+    Confirm.open({
+      label: edit ? '12_Sheet/DiscardEdits' : '12_Sheet/LeaveFlow', icon: 'exit_to_app', warn: true,
+      title: edit ? 'बदलाव छोड़ दें?' : `${TYPE_NAME[S.type]} बनाना बीच में छोड़ें?`,
+      body: edit ? 'आपके बदलाव सेव नहीं होंगे। रचना पहले जैसी ही रहेगी।' : 'अब तक जोड़ी गई फोटो, जानकारी और टैग हट जाएंगे।',
+      yes: edit ? 'बदलाव करते रहें' : 'बनाना जारी रखें', no: edit ? 'बदलाव छोड़ें' : 'छोड़ दें', noDanger: true,
+      onNo: () => edit ? Leave.discardEdits() : Leave.exit(),
+    });
+  },
+  exit() { Bhajan.stop(); Camera.stop(); const keepProfile = P; S = fresh(); P = keepProfile; Crop.src = null; stack.length = 0; cur = null; go('type', { replace: true }); toast('रचना छोड़ दी गई', 'delete'); },
+  discardEdits() { Object.assign(S, JSON.parse(JSON.stringify(S.snap))); S.snap = null; S.editing = false; Bhajan.stop(); stack.length = 0; go('result', { replace: true }); },
+};
+// one reusable bottom sheet for confirmations: primary = the safe/forward action, secondary below it
+const Confirm = {
+  opts: null,
+  open(o) {
+    this.opts = o;
+    $('#confirmBody').innerHTML = `<span class="db-sheet__handle"></span>
+      <div class="cr-confirm">
+        <span class="cr-confirm__icon${o.warn ? ' is-warn' : ''}">${icon(o.icon, 24)}</span>
+        <div class="cr-confirm__text"><h2 class="db-subtitle" id="cfTitle">${o.title}</h2><p class="db-p-s db-t2">${o.body}</p></div>
+        ${o.extra || ''}
+        <div class="cr-confirm__actions"><button class="db-btn db-btn--block" onclick="Confirm.yes()">${o.yes}</button>
+          <button class="db-btn db-btn--text db-btn--block${o.noDanger ? ' cr-btn-danger' : ''}" onclick="Confirm.no()">${o.no}</button></div>
+      </div>`;
+    Sheet.open('confirmSheet'); $('#frameLabel').textContent = o.label; renderProto();
+    setTimeout(() => $('#confirmBody .db-btn').focus(), 30);
+  },
+  yes() { const o = this.opts; Sheet.close(); label(); o.onYes?.(); },
+  no() { const o = this.opts; Sheet.close(); label(); o.onNo?.(); },
+};
+function label() {
+  const v = $('#v-' + cur); let l = v.dataset.label;
+  if (cur === 'gallery') l = '03_Gallery/' + ({ image: 'Photo', video: 'Video', audio: 'Audio', post: 'PhotoOrVideo+Camera', avatar: 'Photo' }[Gallery.mode()] || 'Photo');
+  if (cur === 'details') l = S.type === 'reel' ? '06_Reel/Details' : '06_Status/Details';
+  if (cur === 'result') l = '11_MyPost/' + ({ pending: 'PendingApproval', posted: 'Posted', rejected: 'Rejected' }[S.post?.status] || 'Pending');
+  if (S.editing && ['details', 'bhajan', 'post', 'frame'].includes(cur)) l += ' · Edit';
+  $('#frameLabel').textContent = l;
+}
+// Jumping straight to a screen from the panel: fill in sensible sample data so it renders
+function prepare(id) {
+  const need = { statusFormat: 'status', profile: 'status', frame: 'status', bhajan: 'bhajan', crop: 'bhajan', post: 'post', camera: 'post' }[id];
+  if (need && S.type !== need) { S = { ...fresh(), post: null }; S.type = need; }
+  if (id === 'details' && !['status', 'reel'].includes(S.type)) { S = fresh(); S.type = 'status'; }
+  if (['frame', 'details', 'profile'].includes(id) && !S.media) pickSample(S.type === 'reel' ? 'video' : 'image', S.type === 'reel' ? 'ghat' : 'mandir');
+  if (id === 'bhajan' && !S.media) pickSample('audio', 'a1');
+  if (id === 'crop' && !Crop.src) Crop.load(art('krishna'));
+  if (id === 'gallery' && !S.type) { S.type = 'status'; S.format = 'image'; }
+  if (id === 'result' && !S.post) {
+    if (!S.type) { S.type = 'status'; }
+    if (!S.media && S.type !== 'post') pickSample(S.type === 'bhajan' ? 'audio' : S.type === 'reel' ? 'video' : 'image', S.type === 'bhajan' ? 'a1' : S.type === 'reel' ? 'ghat' : 'mandir');
+    if (!S.tags.length) S.tags = S.type === 'bhajan' ? ['hanuman', 'chalisa'] : ['ganesh', 'good-morning'];
+    if (S.type === 'post' && !S.text) S.text = 'राम नाम की लूट है, लूट सके तो लूट।';
+    if (S.type === 'bhajan' && !S.title) S.title = 'हनुमान चालीसा';
+    S.post = { status: 'pending', resubmits: 0, sentAt: Date.now() };
+  }
+}
+const Sheet = {
+  cur: null,
+  open(id) { this.close(); this.cur = id; $('#' + id).classList.add('is-open'); },
+  close() { if (!this.cur) return; $('#' + this.cur).classList.remove('is-open'); this.cur = null; if (cur) { label(); renderProto(); } },
+};
+
+/* ---------- Shared bits ---------- */
+function pickSample(kind, id) {
+  const g = GALLERY[kind].find(x => x.id === id) || GALLERY[kind][0];
+  S.format = kind === 'audio' ? 'audio' : kind;
+  S.media = { kind, sample: true, id: g.id, name: g.name, size: g.size, dur: g.dur, src: kind === 'audio' ? '' : art(g.id) };
+}
+function tagsBlock(scope) {
+  const n = S.tags.length, full = n >= LIMITS.tags;
+  return `<div class="cr-sec">
+    <div class="cr-sec__head"><h2>टैग चुनें</h2><span class="db-num">${n}/${LIMITS.tags}</span></div>
+    <p class="db-caption db-t3">कम से कम 1 टैग चुनें। सही टैग से आपकी रचना सही भक्तों तक पहुंचती है।</p>
+    ${TAGS.map(([g, list]) => `<div class="cr-taggroup"><span class="cr-taggroup__label">${g}</span><div class="cr-tagrow">
+      ${list.map(([slug, name]) => { const on = S.tags.includes(slug);
+        return `<button class="db-chip db-chip--option${on ? ' is-selected' : ''}" aria-pressed="${on}" ${!on && full ? 'disabled' : ''} onclick="Tags.toggle('${slug}','${scope}')">${on ? icon('check', 16) : ''}${name}</button>`; }).join('')}
+    </div></div>`).join('')}
+  </div>`;
+}
+const Tags = {
+  toggle(slug, scope) {
+    const i = S.tags.indexOf(slug);
+    if (i >= 0) S.tags.splice(i, 1); else if (S.tags.length < LIMITS.tags) S.tags.push(slug);
+    const sc = $('#v-' + cur + ' .view__scroll'), y = sc.scrollTop;
+    Render[cur](); sc.scrollTop = y;
+  },
+};
+function langRow() {
+  return `<div class="cr-langrow"><span class="cr-langrow__icon">${icon('translate')}</span>
+    <span class="cr-langrow__body"><span class="db-p-s db-semibold">भाषा: ${LANG_NAME[P.lang]}</span><span class="db-caption db-t3">आपकी प्रोफ़ाइल सेटिंग से ली गई</span></span></div>`;
+}
+function sendLabel() { return S.editing ? 'बदलाव करके दोबारा भेजें' : 'स्वीकृति के लिए भेजें'; }
+function editInfo() {
+  if (!S.editing) return '';
+  return S.post.status === 'posted'
+    ? `<div class="db-info">${icon('info', 20)}<span class="db-p-s db-t2">बदलाव दोबारा जांच के लिए जाएंगे। तब तक आपकी पुरानी पोस्ट सबको दिखती रहेगी।</span></div>`
+    : `<div class="db-info db-info--error">${icon('error', 20)}<span class="db-p-s db-t2"><b>${REASONS[S.post.reason].k}:</b> ${REASONS[S.post.reason].note}</span></div>`;
+}
+function setFoot(btnSel, helpSel, ok, msg) {
+  const b = $(btnSel); b.disabled = !ok; b.textContent = sendLabel();
+  $(helpSel).textContent = ok ? '' : msg; $(helpSel).hidden = ok;
+}
+
+/* ---------- Frame rendering ---------- */
+// Garlands are drawn in SVG (100×100 box, photo sits inside r≈34) so every colour stays on the db palette
+garlandSVG.n = 0;
+function garlandSVG(kind) {
+  const P2 = (a, r) => [50 + r * Math.cos(a), 50 + r * Math.sin(a)];
+  let s = `<svg viewBox="0 0 100 100" aria-hidden="true">`;
+  if (kind === 'gold') {
+    const gid = 'gg' + (++garlandSVG.n);
+    s += `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--db-amber-200)"/><stop offset=".5" style="stop-color:var(--db-amber-500)"/><stop offset="1" style="stop-color:var(--db-amber-700)"/></linearGradient></defs>`;
+    s += `<circle cx="50" cy="50" r="40" fill="none" stroke="url(#${gid})" stroke-width="7"/><circle cx="50" cy="50" r="45" fill="none" style="stroke:var(--db-amber-300)" stroke-width="1.2"/>`;
+    for (let i = 0; i < 24; i++) { const [x, y] = P2(i / 24 * Math.PI * 2, 45); s += `<circle cx="${x}" cy="${y}" r="1.6" style="fill:var(--db-amber-100)"/>`; }
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 - Math.PI / 2, [x, y] = P2(a, 41); s += `<rect x="${x - 4}" y="${y - 4}" width="8" height="8" transform="rotate(45 ${x} ${y})" style="fill:var(--db-primary-700);stroke:var(--db-amber-200)" stroke-width="1.4"/>`; }
+  } else if (kind === 'mandala') {
+    for (let i = 0; i < 16; i++) { const a = i * 22.5; s += `<ellipse cx="50" cy="9" rx="5.5" ry="9" transform="rotate(${a} 50 50)" style="fill:${i % 2 ? 'var(--db-amber-400)' : 'var(--db-primary-500)'};stroke:var(--db-primary-800)" stroke-width=".6"/>`; }
+    s += `<circle cx="50" cy="50" r="39" fill="none" style="stroke:var(--db-primary-700)" stroke-width="4"/><circle cx="50" cy="50" r="39" fill="none" style="stroke:var(--db-amber-200)" stroke-width="1" stroke-dasharray="2 2.5"/>`;
+  } else if (kind === 'marigold') {
+    for (let i = 0; i < 20; i++) { const [x, y] = P2(i / 20 * Math.PI * 2, 42); const c = i % 2 ? 'var(--db-amber-400)' : 'var(--db-primary-500)';
+      s += `<circle cx="${x}" cy="${y}" r="7" style="fill:${c}"/><circle cx="${x}" cy="${y}" r="4.6" fill="none" style="stroke:var(--db-primary-700)" stroke-width=".8" stroke-dasharray="1.2 1.2"/><circle cx="${x}" cy="${y}" r="1.4" style="fill:var(--db-primary-800)"/>`; }
+    for (let i = 0; i < 20; i++) { const [x, y] = P2((i + .5) / 20 * Math.PI * 2, 34.5); s += `<ellipse cx="${x}" cy="${y}" rx="2.2" ry="3.6" transform="rotate(${(i + .5) * 18 + 90} ${x} ${y})" style="fill:var(--db-green-600)"/>`; }
+  } else if (kind === 'lotus') {
+    for (let i = 0; i < 12; i++) s += `<path d="M50 2 C57 10 57 18 50 24 C43 18 43 10 50 2Z" transform="rotate(${i * 30} 50 50)" style="fill:var(--db-primary-100);stroke:var(--db-primary-400)" stroke-width="1"/>`;
+    for (let i = 0; i < 12; i++) s += `<path d="M50 7 C55 12 55 18 50 22 C45 18 45 12 50 7Z" transform="rotate(${i * 30 + 15} 50 50)" style="fill:var(--db-primary-300)"/>`;
+    s += `<circle cx="50" cy="50" r="37" fill="none" style="stroke:var(--db-amber-400)" stroke-width="3"/>`;
+  } else if (kind === 'rudraksh') {
+    for (let i = 0; i < 18; i++) { const [x, y] = P2(i / 18 * Math.PI * 2, 41); s += `<circle cx="${x}" cy="${y}" r="5.6" style="fill:var(--db-primary-900);stroke:var(--db-primary-700)" stroke-width="1.6" stroke-dasharray="1.5 1"/>`; }
+    for (let i = 0; i < 18; i++) { const [x, y] = P2((i + .5) / 18 * Math.PI * 2, 41); s += `<circle cx="${x}" cy="${y}" r="1.7" style="fill:var(--db-amber-400)"/>`; }
+    const [x, y] = P2(Math.PI / 2, 46); s += `<path d="M${x} ${y - 4} l5 9 h-10z" style="fill:var(--db-amber-500)"/>`;
+  }
+  return s + '</svg>';
+}
+// Media + frame overlay. opts: { w, anim, playing }
+function frameStage(opts = {}) {
+  const f = S.type === 'status' ? FRAMES.find(x => x.id === S.frame) : null;
+  const m = S.media, isVid = m && m.kind === 'video';
+  let media = '';
+  if (m) media = (isVid && !m.sample)
+    ? `<video class="fx-media${opts.feed ? ' is-cover' : ''}" src="${m.src}" muted loop playsinline ${opts.playing ? 'autoplay' : ''}></video>`
+    : `<img class="fx-media${opts.feed ? ' is-cover' : ''}${isVid && opts.playing ? ' is-playing' : ''}" src="${m.src}" alt="">`;
+  const photo = photoSrc() ? `<img src="${photoSrc()}" alt="">` : icon('person', 24);
+  const name = esc(P.name || 'आपका नाम');
+  let over = '';
+  if (f) {
+    over = `<div class="fx-fade"></div>
+      <div class="fx-row fx-row--${f.layout} fx-in-${f.entry}">
+        <div class="fx-pic"><div class="fx-glow" style="--g:${f.glow}"></div><div class="fx-photo">${photo}</div><div class="fx-garland fx-anim-${f.anim}">${garlandSVG(f.garland)}</div></div>
+        ${f.strips ? '' : `<div class="fx-name">${name}</div>`}
+      </div>`;
+  }
+  const top = f && f.strips ? `<div class="fx-strip fx-strip--top">${greet()}</div>` : '';
+  const bottom = f && f.strips ? `<div class="fx-strip fx-strip--bottom"><b>${name}</b><span>Daily Bhakti</span></div>` : '';
+  const play = isVid && !opts.feed ? `<span class="fx-play">${icon(opts.playing ? 'pause' : 'play_arrow', 16, ' db-icon--fill')}${dur(m.dur || 0)}</span>` : '';
+  return `<div class="fx-stage${opts.anim ? ' is-anim' : ''}${opts.feed ? ' fx-stage--feed' : ''}" style="${opts.w ? `--w:${opts.w}px` : ''}">${top}<div class="fx-window">${media}${over}${play}</div>${bottom}</div>`;
+}
+
+/* ---------- Text card ---------- */
+function textSize(t) { const n = [...t.trim()].length; return n <= 40 ? .96 : n <= 100 ? .76 : n <= 200 ? .6 : n <= 320 ? .5 : .42; }
+function textCard(w) {
+  const t = S.text.trim();
+  return `<div class="tc tc--${S.textStyle}" style="--tw:${w}px"><div class="tc__card"></div><div class="tc__txt${t ? '' : ' is-empty'}" style="font-size:${textSize(t || 'आपके भाव यहाँ दिखेंगे')}em">${esc(t || 'आपके भाव यहाँ दिखेंगे')}</div><div class="tc__mark">॥ ॐ ॥</div></div>`;
+}
+
+/* ---------- Screens ---------- */
+const Render = {
+  type() {
+    $('#typeHello').textContent = `${hello()}, आज क्या बनाना चाहेंगे?`;
+    $('#typeList').innerHTML = TYPES.map(t => `<button class="cr-type" onclick="Flow.choose('${t.id}')">
+      <img class="cr-type__icon" src="${art('icon-' + t.id)}" alt=""><span class="cr-type__title">${t.title}</span><span class="cr-type__desc">${t.desc}</span></button>`).join('');
+  },
+  statusFormat() {
+    $('#formatList').innerHTML = `
+      <button class="cr-format" onclick="Flow.format('image')"><span class="cr-format__art"><img src="${art('mandir')}" alt=""></span>
+        <span class="cr-format__body"><span class="db-subtitle">फोटो स्टेटस</span><span class="db-p-s db-t2">पूजा, दर्शन या त्योहार की फोटो</span>
+        <span class="cr-format__limits db-caption"><span>${icon('image', 16)}JPG, PNG</span><span>${icon('data_usage', 16)}15 MB तक</span></span></span>${icon('chevron_right')}</button>
+      <button class="cr-format" onclick="Flow.format('video')"><span class="cr-format__art"><img src="${art('ghat')}" alt="">${icon('play_arrow', 20, ' db-icon--fill')}</span>
+        <span class="cr-format__body"><span class="db-subtitle">वीडियो स्टेटस</span><span class="db-p-s db-t2">आरती, भजन या दर्शन का छोटा वीडियो</span>
+        <span class="cr-format__limits db-caption"><span>${icon('timer', 16)}30 सेकंड तक</span><span>${icon('data_usage', 16)}200 MB तक</span></span></span>${icon('chevron_right')}</button>`;
+  },
+  gallery() { Gallery.render(); },
+  profile() { Profile.render(); },
+  frame() { Frame.render(true); },
+  details() {
+    const reel = S.type === 'reel';
+    $('#detailsTitle').textContent = reel ? 'रील की जानकारी' : 'स्टेटस की जानकारी';
+    const field = reel ? S.title : S.caption, max = reel ? 120 : 200;
+    $('#detailsBody').innerHTML = `${editInfo()}
+      <div class="cr-media-row">
+        <div style="display:grid;gap:8px;justify-items:center">${frameStage({ w: 112 })}
+          <button class="db-btn db-btn--text db-btn--sm" onclick="${reel ? 'Flow.replaceMedia()' : "go('frame')"}">${reel ? 'वीडियो बदलें' : 'फ्रेम बदलें'}</button></div>
+        <label class="cr-media-row__field"><span class="db-label">${reel ? 'शीर्षक या कैप्शन *' : 'कैप्शन (ज़रूरी नहीं)'}</span>
+          <textarea class="db-input" id="capInput" maxlength="${max}" placeholder="${reel ? 'जैसे: गंगा आरती, दशाश्वमेध घाट' : 'इस स्टेटस के बारे में कुछ लिखें…'}" oninput="Details.input(this)">${esc(field)}</textarea>
+          <span class="cr-count" id="capCount">${[...field].length}/${max}</span></label>
+      </div>
+      ${tagsBlock('details')}
+      ${langRow()}`;
+    Details.foot();
+  },
+  bhajan() { Bhajan.render(); },
+  crop() { Crop.render(); },
+  post() { Post.render(); },
+  camera() { Camera.start(); },
+  result() { Result.render(); },
+};
+
+const Flow = {
+  choose(t) {
+    S = fresh(); S.type = t;
+    if (t === 'status') go('statusFormat');
+    else if (t === 'reel') { S.format = 'video'; Gallery.open('main'); }
+    else if (t === 'bhajan') { S.format = 'audio'; Gallery.open('main'); }
+    else go('post');
+  },
+  format(f) { S.format = f; S.media = null; Gallery.open('main'); },
+  replaceMedia() { Gallery.open('main'); },
+  // after a main media pick
+  afterMedia() {
+    if (S.type === 'status') { if (!P.name || !P.photo) go('profile'); else go('frame'); }
+    else if (S.type === 'reel') go('details');
+    else if (S.type === 'bhajan') { if (!S.title) S.title = S.media.name.replace(/\.[^.]+$/, '').replace(/\s*—.*$/, '').replace(/रिकॉर्डिंग/, '').trim(); go('bhajan'); }
+    else if (S.type === 'post') { stack.pop(); go('post', { replace: true }); }
+  },
+};
+
+/* ---------- Gallery ---------- */
+const Gallery = {
+  hidden: {},   // limit strips the user closed, per media type; errors always show
+  hideLimit(mode) { this.hidden[mode] = true; $('#galLimit').innerHTML = ''; },
+  open(forWhat) { S.galleryFor = forWhat; S.galError = ''; go('gallery'); },
+  mode() {
+    if (S.galleryFor === 'avatar' || S.galleryFor === 'cover') return 'image';
+    if (S.type === 'post') return 'post';
+    return S.format || 'image';
+  },
+  limitFor(kind) {
+    if (kind === 'image') return { bytes: LIMITS.image.bytes };
+    return LIMITS[S.type] || LIMITS.post;
+  },
+  check(kind, sizeMB, secs) {
+    const L = this.limitFor(kind), bytes = sizeMB * MB, what = kind === 'image' ? 'फोटो' : kind === 'video' ? 'वीडियो' : 'ऑडियो', ka = kind === 'image' ? 'की' : 'का';
+    if (bytes > L.bytes) return `यह ${what} ${mb(sizeMB)} ${ka} है। ${Math.round(L.bytes / MB)} MB तक ${ka} ${what} चुनें।`;
+    if (kind !== 'image' && secs != null) {
+      if (secs > L.maxSec + .05) return `यह ${what} ${durWords(secs)} का है। ${TYPE_NAME[S.type]} के लिए ${durWords(L.maxSec)} तक का ${what} चुनें।`;
+      if (secs < L.minSec - .05) return `यह ${what} बहुत छोटा है। कम से कम ${durWords(L.minSec)} का ${what} चुनें।`;
+    }
+    return '';
+  },
+  render() {
+    const mode = this.mode();
+    const titles = { image: S.galleryFor === 'avatar' ? 'अपनी फोटो चुनें' : S.galleryFor === 'cover' ? 'कवर फोटो चुनें' : 'फोटो चुनें', video: 'वीडियो चुनें', audio: 'भजन की ऑडियो चुनें', post: 'फोटो या वीडियो चुनें' };
+    $('#galTitle').textContent = titles[mode];
+    const L = mode === 'audio' ? LIMITS.bhajan : mode === 'video' ? this.limitFor('video') : null;
+    const limitText = mode === 'image' ? 'JPG या PNG · 15 MB तक'
+      : mode === 'video' ? `${L.minSec}–${L.maxSec} सेकंड · ${Math.round(L.bytes / MB)} MB तक`
+      : mode === 'audio' ? 'MP3, M4A या WAV · 10 सेकंड से 15 मिनट · 50 MB तक'
+      : 'एक फोटो (15 MB तक) या वीडियो (90 सेकंड, 300 MB तक)';
+    $('#galLimit').innerHTML = S.galError
+      ? `<div class="cr-strip is-error" role="alert">${icon('error', 20)}<span>${esc(S.galError)}</span></div>`
+      : this.hidden[mode] ? ''
+      : `<div class="cr-strip">${icon('info', 20)}<span>${limitText}</span><button class="db-icon-btn db-icon-btn--sm cr-strip__close" aria-label="संदेश बंद करें" onclick="Gallery.hideLimit('${mode}')">${icon('close', 20)}</button></div>`;
+    const filesCell = accept => `<button class="cr-cell cr-cell--action is-files" onclick="Gallery.device('${accept}')">${icon('folder_open', 24)}फ़ोन से चुनें</button>`;
+    if (mode === 'audio') {
+      $('#galBody').innerHTML = `<div class="cr-audio-list">
+        <button class="cr-attach cr-audio-pick" onclick="Gallery.device('audio/*')"><span class="cr-attach__icon">${icon('upload_file')}</span>
+          <span class="db-row__body"><span class="db-p-s db-semibold">फ़ोन से ऑडियो फ़ाइल चुनें</span><span class="db-caption db-t3">रिकॉर्डिंग, डाउनलोड या WhatsApp ऑडियो</span></span>${icon('chevron_right')}</button>
+        <h2 class="cr-audio-list__head">हाल की रिकॉर्डिंग</h2>
+        ${GALLERY.audio.map(a => { const bad = this.check('audio', a.size, a.dur);
+          return `<button class="db-row${bad ? ' is-too-big' : ''}" onclick="Gallery.pick('audio','${a.id}')"><span class="db-thumb">${icon('graphic_eq')}</span>
+          <span class="db-row__body"><span class="db-row__title db-clamp-1">${esc(a.name)}</span><span class="db-row__meta db-num">${dur(a.dur)} · ${mb(a.size)}</span></span>
+          ${bad ? `<span class="db-badge" style="background:var(--db-error-600)">${a.size * MB > LIMITS.bhajan.bytes || a.dur > LIMITS.bhajan.maxSec ? 'बहुत बड़ा' : 'बहुत छोटा'}</span>` : ''}</button>`; }).join('')}
+      </div>`;
+      return;
+    }
+    const kinds = mode === 'post' ? ['image', 'video'] : [mode];
+    const items = kinds.flatMap(k => GALLERY[k].filter(g => !(S.galleryFor === 'main' && S.type !== 'post' && g.id === 'user')).map(g => ({ ...g, kind: k })));
+    if (mode === 'post') items.sort((a, b) => (a.id + a.kind).localeCompare(b.id + b.kind));
+    if (S.galleryFor === 'avatar') items.sort((a, b) => (b.id === 'user') - (a.id === 'user'));
+    const cells = items.map(g => { const bad = this.check(g.kind, g.size, g.dur);
+      return `<button class="cr-cell${bad ? ' is-too-big' : ''}" onclick="Gallery.pick('${g.kind}','${g.id}')" aria-label="${esc(g.name)}">
+        <img src="${art(g.id)}" alt="">
+        ${g.kind === 'video' ? `<span class="cr-cell__kind">${icon('videocam', 16)}</span>` : ''}
+        ${bad ? `<span class="db-tag cr-cell__big db-num">${icon('block', 16)}&nbsp;${g.kind === 'video' && g.size * MB <= this.limitFor('video').bytes ? dur(g.dur) : mb(g.size)}</span>`
+              : g.kind === 'video' ? `<span class="db-tag cr-cell__dur db-num">${dur(g.dur)}</span>` : ''}
+      </button>`; }).join('');
+    const cam = mode === 'post' ? `<button class="cr-cell cr-cell--action" onclick="go('camera')">${icon('photo_camera', 24)}कैमरा</button>` : '';
+    const accept = mode === 'post' ? 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm' : mode === 'video' ? 'video/mp4,video/quicktime,video/webm' : 'image/jpeg,image/png,image/webp';
+    $('#galBody').innerHTML = `<div class="cr-grid">${cam}${filesCell(accept)}${cells}</div>`;
+  },
+  pick(kind, id) {
+    const g = GALLERY[kind].find(x => x.id === id);
+    const bad = this.check(kind, g.size, g.dur);
+    if (bad) { S.galError = bad; this.render(); return; }
+    this.upload({ kind, sample: true, id, name: g.name, size: g.size, dur: g.dur, src: kind === 'audio' ? '' : art(id) });
+  },
+  device(accept) {
+    const inp = $('#filePick'); inp.accept = accept; inp.value = '';
+    inp.onchange = () => { const f = inp.files[0]; if (f) this.fromFile(f); };
+    inp.click();
+  },
+  fromFile(f) {
+    const kind = f.type.startsWith('video') ? 'video' : f.type.startsWith('audio') ? 'audio' : f.type.startsWith('image') ? 'image' : null;
+    if (!kind) { S.galError = 'यह फ़ाइल नहीं खुल रही। फोटो, वीडियो या ऑडियो चुनें।'; this.render(); return; }
+    const sizeMB = f.size / MB, url = URL.createObjectURL(f);
+    const finish = secs => {
+      const bad = this.check(kind, sizeMB, secs);
+      if (bad) { S.galError = bad; URL.revokeObjectURL(url); this.render(); return; }
+      this.upload({ kind, sample: false, name: f.name, size: sizeMB, dur: secs, src: url });
+    };
+    if (kind === 'image') { const bad = this.check('image', sizeMB); if (bad) { S.galError = bad; this.render(); return; } finish(null); return; }
+    const el = document.createElement(kind); el.preload = 'metadata'; el.src = url;
+    el.onloadedmetadata = () => finish(el.duration); el.onerror = () => { S.galError = 'यह फ़ाइल नहीं खुल रही। कोई दूसरी फ़ाइल चुनें।'; this.render(); };
+  },
+  upload(m) {
+    const forWhat = S.galleryFor;
+    if (S.galError) { S.galError = ''; this.render(); }   // a valid pick clears the earlier size/length error
+    if (forWhat === 'avatar') { P.photo = m.src.startsWith('blob:') ? m.src : m.id; S.galleryFor = 'main'; back(); toast('फोटो लग गई'); return; }
+    if (forWhat === 'cover') { Crop.load(m.src); S.galleryFor = 'main'; go('crop', { replace: true }); return; }
+    const ov = $('#upload'); $('#upImg').src = m.kind === 'audio' ? art('krishna') : m.src; $('#upImg').style.display = m.kind === 'audio' ? 'none' : '';
+    $('#upText').textContent = m.kind === 'image' ? 'फोटो अपलोड हो रही है…' : `${m.kind === 'video' ? 'वीडियो' : 'ऑडियो'} अपलोड हो रहा है…`;
+    ov.classList.add('is-open'); let p = 0;
+    const step = () => {
+      p = Math.min(100, p + 9 + Math.random() * 14);
+      $('#upBar').style.width = p + '%'; $('#upPct').textContent = Math.round(p) + '%';
+      if (p < 100) { this._t = setTimeout(step, 90); return; }
+      setTimeout(() => { ov.classList.remove('is-open'); $('#upBar').style.width = '0%'; S.media = m; S.format = m.kind; Flow.afterMedia(); }, 220);
+    };
+    step();
+  },
+};
+
+/* ---------- Profile step ---------- */
+const Profile = {
+  draft: null,
+  render() {
+    if (!this.draft) this.draft = { name: P.name };
+    const has = !!P.photo;
+    $('#profileBody').innerHTML = `
+      <div class="cr-q"><h2 class="db-h6">फ्रेम पर आपकी फोटो और नाम</h2><p class="db-p-s db-t2">स्टेटस पर आपकी फोटो माला वाले फ्रेम में और नाम उसके पास दिखेगा। यह एक बार ही पूछा जाएगा।</p></div>
+      <button class="cr-avatar-pick${has ? ' has-photo' : ''}" aria-label="${has ? 'फोटो बदलें' : 'फोटो जोड़ें'}" onclick="Gallery.open('avatar')">
+        ${has ? `<img src="${photoSrc()}" alt="आपकी फोटो">` : icon('add_a_photo', 24, ' is-big')}
+        <span class="cr-avatar-pick__badge">${icon(has ? 'edit' : 'add', 20)}</span></button>
+      <label class="db-field"><span class="db-label">आपका नाम</span><input class="db-input" id="profName" maxlength="24" placeholder="जैसे प्रवीण कुमार" value="${esc(this.draft.name)}" oninput="Profile.draft.name=this.value;Profile.foot()"><span class="db-helper">24 अक्षर तक</span></label>
+      <div class="db-info">${icon('person', 20)}<span class="db-p-s db-t2">यह फोटो और नाम आपकी प्रोफ़ाइल में भी सेव हो जाएंगे।</span></div>`;
+    this.foot();
+  },
+  foot() {
+    const ok = !!P.photo && !!this.draft.name.trim();
+    $('#profileNext').disabled = !ok;
+    $('#profileHelp').hidden = ok;
+    $('#profileHelp').textContent = !P.photo && !this.draft.name.trim() ? 'आगे बढ़ने के लिए फोटो और नाम दोनों जोड़ें' : !P.photo ? 'आगे बढ़ने के लिए अपनी फोटो जोड़ें' : 'आगे बढ़ने के लिए अपना नाम लिखें';
+  },
+  save() { P.name = this.draft.name.trim(); this.draft = null; toast('प्रोफ़ाइल सेव हो गई'); go('frame', { replace: true }); },
+};
+
+/* ---------- Frame editor ---------- */
+const Frame = {
+  render(anim) {
+    $('#editorStage').innerHTML = frameStage({ w: 248, anim, playing: S.playing });
+    $('#editorPills').innerHTML = `<button class="db-jap-pill cr-pill" onclick="Gallery.open('avatar')"><img src="${photoSrc()}" alt="">फोटो बदलें</button>
+      <button class="db-jap-pill cr-pill is-plain" onclick="Frame.editName()">${icon('edit', 20)}नाम बदलें</button>
+      ${S.media?.kind === 'video' ? `<button class="db-jap-pill cr-pill is-plain" aria-label="${S.playing ? 'रोकें' : 'चलाएं'}" onclick="Frame.play()">${icon(S.playing ? 'pause' : 'play_arrow', 20, ' db-icon--fill')}${S.playing ? 'रोकें' : 'चलाएं'}</button>` : ''}`;
+    $('#frameList').innerHTML = `<button class="cr-fthumb${!S.frame ? ' is-selected' : ''}" role="option" aria-selected="${!S.frame}" onclick="Frame.pick(null)"><span class="cr-fthumb__ring"><span class="cr-fthumb__none">${icon('hide_image', 24)}</span><span class="cr-fthumb__check">${icon('check', 16)}</span></span>बिना फ्रेम</button>
+      <span class="cr-frames__sep"></span>
+      ${FRAMES.map(f => `<button class="cr-fthumb${S.frame === f.id ? ' is-selected' : ''}${f.strips ? ' has-strips' : ''}" role="option" aria-selected="${S.frame === f.id}" onclick="Frame.pick('${f.id}')"><span class="cr-fthumb__ring">${garlandSVG(f.garland)}<span class="cr-fthumb__check">${icon('check', 16)}</span></span>${f.name}</button>`).join('')}`;
+  },
+  pick(id) { S.frame = id; this.render(true); },
+  play() { S.playing = !S.playing; this.render(false); },
+  editName() { $('#nameInput').value = P.name; Sheet.open('nameSheet'); setTimeout(() => $('#nameInput').focus(), 50); },
+  saveName() { const v = $('#nameInput').value.trim(); if (!v) { $('#nameInput').classList.add('is-error'); return; } $('#nameInput').classList.remove('is-error'); P.name = v; Sheet.close(); this.render(true); toast('नाम बदल गया'); },
+  next() { S.playing = false; go('details'); },
+};
+
+/* ---------- Details (status + reel) ---------- */
+const Details = {
+  input(el) {
+    if (S.type === 'reel') S.title = el.value; else S.caption = el.value;
+    $('#capCount').textContent = `${[...el.value].length}/${el.maxLength}`; this.foot();
+  },
+  foot() {
+    const needTitle = S.type === 'reel' && !S.title.trim(), needTags = !S.tags.length;
+    setFoot('#detailsSend', '#detailsHelp', !needTitle && !needTags,
+      needTitle && needTags ? 'भेजने के लिए शीर्षक लिखें और कम से कम 1 टैग चुनें' : needTitle ? 'भेजने के लिए शीर्षक लिखें' : 'भेजने के लिए कम से कम 1 टैग चुनें');
+  },
+};
+
+/* ---------- Bhajan ---------- */
+const WAVE = Array.from({ length: 44 }, (_, i) => 20 + Math.round(70 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * .45))));
+const Bhajan = {
+  t: 0, timer: null, audio: null,
+  render() {
+    const m = S.media, total = m.dur || 0, pct = total ? this.t / total : 0;
+    $('#bhajanBody').innerHTML = `${editInfo()}
+      <div class="cr-audio">
+        <div class="cr-audio__top"><button class="db-play" aria-label="${this.timer ? 'रोकें' : 'सुनें'}" onclick="Bhajan.toggle()">${icon(this.timer ? 'pause' : 'play_arrow', 24, ' db-icon--fill')}</button>
+          <span class="db-row__body"><span class="db-row__title db-clamp-1">${esc(m.name)}</span><span class="db-row__meta db-num" id="bhTime">${dur(this.t)} / ${dur(total)} · ${mb(m.size)}</span></span>
+          <button class="db-btn db-btn--text db-btn--sm" onclick="Flow.replaceMedia()">बदलें</button></div>
+        <div class="cr-wave" id="bhWave" aria-hidden="true">${WAVE.map((h, i) => `<i style="height:${h}%" class="${i / WAVE.length < pct ? 'is-on' : ''}"></i>`).join('')}</div>
+      </div>
+      <label class="db-field"><span class="db-label">भजन का नाम *</span><input class="db-input" id="bhTitle" maxlength="80" placeholder="जैसे: हनुमान चालीसा" value="${esc(S.title)}" oninput="S.title=this.value;Bhajan.foot()"><span class="db-helper">भक्त इसी नाम से भजन ढूंढेंगे</span></label>
+      <div class="cr-sec">
+        <div class="cr-sec__head"><h2>कवर फोटो</h2></div>
+        <div class="cr-cover">
+          <button class="cr-cover__box${S.cover ? ' has-img' : ''}" onclick="Gallery.open('cover')" aria-label="${S.cover ? 'कवर बदलें' : 'कवर फोटो जोड़ें'}">${S.cover ? coverThumb(104) : icon('add_photo_alternate', 24) + 'कवर जोड़ें'}</button>
+          <span class="cr-cover__body"><span class="db-p-s db-t2">फोटो चौकोर आकार में काटी जाएगी। भगवान जी का चित्र या आपकी भजन मंडली की फोटो अच्छी लगती है।</span>
+            ${S.cover ? `<button class="db-btn db-btn--text db-btn--sm" style="margin-left:-16px" onclick="Crop.load(S.cover.src, S.cover);go('crop')">${icon('crop', 20)}दोबारा काटें</button>` : '<span class="db-caption db-t3">कवर न लगाने पर Daily Bhakti का कवर लगेगा</span>'}</span>
+        </div>
+      </div>
+      ${tagsBlock('bhajan')}
+      ${langRow()}`;
+    this.foot();
+  },
+  foot() {
+    const needTitle = !S.title.trim(), needTags = !S.tags.length;
+    setFoot('#bhajanSend', '#bhajanHelp', !needTitle && !needTags,
+      needTitle && needTags ? 'भेजने के लिए भजन का नाम लिखें और कम से कम 1 टैग चुनें' : needTitle ? 'भेजने के लिए भजन का नाम लिखें' : 'भेजने के लिए कम से कम 1 टैग चुनें');
+  },
+  toggle() {
+    const m = S.media;
+    if (this.timer) { clearInterval(this.timer); this.timer = null; this.audio?.pause(); this.render(); return; }
+    if (!m.sample) { this.audio = this.audio && this.audio.src === m.src ? this.audio : new Audio(m.src); this.audio.currentTime = this.t; this.audio.play().catch(() => {}); }
+    this.timer = setInterval(() => {
+      this.t = this.audio && !m.sample ? this.audio.currentTime : this.t + .25 * 8; // samples play at 8× so the bar visibly moves
+      if (this.t >= m.dur) { this.t = 0; clearInterval(this.timer); this.timer = null; this.render(); return; }
+      if (cur !== 'bhajan') { clearInterval(this.timer); this.timer = null; this.audio?.pause(); return; }
+      const pct = this.t / m.dur; $('#bhTime').textContent = `${dur(this.t)} / ${dur(m.dur)} · ${mb(m.size)}`;
+      $$('#bhWave i').forEach((b, i) => b.classList.toggle('is-on', i / WAVE.length < pct));
+    }, 250);
+    this.render();
+  },
+  stop() { clearInterval(this.timer); this.timer = null; this.audio?.pause(); this.t = 0; },
+};
+function coverThumb(size) {
+  const c = S.cover; const k = size / 296;
+  return `<span class="crop-mini" style="transform:scale(${k})"><img src="${c.src}" alt="कवर फोटो" style="width:${c.bw}px;height:${c.bh}px;transform:${cropTf(c)}"></span>`;
+}
+
+/* ---------- Crop (square cover): drag, pinch to zoom, two-finger rotate ---------- */
+const Crop = {
+  src: null, x: 0, y: 0, z: 1, r: 0, bw: 296, bh: 296, pts: new Map(), g: null,
+  load(src, prev) {
+    this.src = src; this.x = prev?.x || 0; this.y = prev?.y || 0; this.z = prev?.z || 1; this.r = prev?.r || 0;
+    const img = new Image(); img.onload = () => { const k = img.naturalWidth / img.naturalHeight; this.bw = k >= 1 ? 296 * k : 296; this.bh = k >= 1 ? 296 : 296 / k; if (cur === 'crop') this.paint(); }; img.src = src;
+  },
+  render() {
+    $('#cropImg').src = this.src; this.paint();
+    const area = $('#cropArea');
+    if (area._wired) return;
+    area._wired = true;
+    const at = e => ({ x: e.clientX, y: e.clientY });
+    area.addEventListener('pointerdown', e => { try { area.setPointerCapture(e.pointerId); } catch {} this.pts.set(e.pointerId, at(e)); this.begin(); });
+    area.addEventListener('pointermove', e => { if (!this.pts.has(e.pointerId)) return; this.pts.set(e.pointerId, at(e)); this.move(); });
+    const end = e => { if (!this.pts.delete(e.pointerId)) return; this.snap(); this.begin(); };
+    area.addEventListener('pointerup', end); area.addEventListener('pointercancel', end);
+    // trackpad pinch arrives as ctrl+wheel; shift+wheel rotates (desktop stand-in for two fingers)
+    area.addEventListener('wheel', e => { e.preventDefault(); if (e.shiftKey) this.r += e.deltaY / 4; else this.z *= Math.exp(-e.deltaY / (e.ctrlKey ? 100 : 400)); this.paint(); }, { passive: false });
+    // Safari trackpad / iOS gesture events
+    area.addEventListener('gesturestart', e => { e.preventDefault(); this.g = { z: this.z, r: this.r }; });
+    area.addEventListener('gesturechange', e => { e.preventDefault(); this.z = this.g.z * e.scale; this.r = this.g.r + e.rotation; this.paint(); });
+    area.addEventListener('gestureend', e => { e.preventDefault(); this.snap(); });
+    $('#cropZoom').addEventListener('input', e => { this.z = +e.target.value; this.paint(); });
+  },
+  begin() {
+    const p = [...this.pts.values()];
+    this.g = { x: this.x, y: this.y, z: this.z, r: this.r, p: p.map(q => ({ ...q })) };
+    if (p.length >= 2) { this.g.d = Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y) || 1; this.g.a = Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x); this.g.c = { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 }; }
+  },
+  move() {
+    const p = [...this.pts.values()], g = this.g;
+    if (p.length === 1) { this.x = g.x + p[0].x - g.p[0].x; this.y = g.y + p[0].y - g.p[0].y; }
+    else if (p.length >= 2 && g.d) {
+      const d = Math.hypot(p[1].x - p[0].x, p[1].y - p[0].y), a = Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x), c = { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 };
+      this.z = g.z * d / g.d; this.r = g.r + (a - g.a) * 180 / Math.PI; this.x = g.x + c.x - g.c.x; this.y = g.y + c.y - g.c.y;
+    }
+    this.paint();
+  },
+  snap() { const n = Math.round(this.r / 90) * 90; if (Math.abs(this.r - n) < 5) this.r = n; this.paint(); },
+  rotate90() { this.r = Math.round(this.r / 90) * 90 + 90; this.paint(); },
+  // a rotated image must still cover the 296 square: minimum zoom grows with |cos|+|sin|
+  clamp() {
+    const t = this.r * Math.PI / 180, c = Math.abs(Math.cos(t)), n = Math.abs(Math.sin(t)), k = c + n;
+    this.z = Math.min(4, Math.max(k * 296 / Math.min(this.bw, this.bh), this.z));
+    const W = (this.bw * c + this.bh * n) * this.z, H = (this.bw * n + this.bh * c) * this.z;   // rotated extents on screen
+    const mx = Math.max(0, (W - 296 * k) / 2), my = Math.max(0, (H - 296 * k) / 2);           // exact at 0°/90°, safe between
+    this.x = Math.max(-mx, Math.min(mx, this.x)); this.y = Math.max(-my, Math.min(my, this.y));
+  },
+  paint() {
+    this.clamp(); const im = $('#cropImg');
+    im.style.width = this.bw + 'px'; im.style.height = this.bh + 'px'; im.style.transform = cropTf(this);
+    $('#cropZoom').value = this.z; $('#cropAngle').textContent = `${Math.round(((this.r % 360) + 360) % 360)}°`;
+  },
+  done() { S.cover = { src: this.src, x: this.x, y: this.y, z: this.z, r: this.r, bw: this.bw, bh: this.bh }; toast('कवर लग गया'); stack.pop(); go('bhajan', { replace: true }); },
+};
+const cropTf = c => `translate(calc(-50% + ${c.x}px), calc(-50% + ${c.y}px)) rotate(${c.r || 0}deg) scale(${c.z})`;
+
+/* ---------- Post ---------- */
+const autosize = el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; };
+const Post = {
+  render() {
+    const m = S.media, n = [...S.text].length;
+    const attach = m
+      ? `<div class="cr-attached">${m.kind === 'video' && !m.sample ? `<video src="${m.src}" controls playsinline></video>` : `<img src="${m.src}" alt="">`}
+          <button class="db-round" aria-label="मीडिया हटाएं" onclick="Post.removeMedia()">${icon('close', 20)}</button>
+          ${m.kind === 'video' ? `<span class="db-tag db-num">${icon('videocam', 16)}&nbsp;${dur(m.dur || 0)}</span>` : ''}</div>`
+      : `<button class="cr-attach" onclick="Gallery.open('main')"><span class="cr-attach__icon">${icon('add_photo_alternate')}</span>
+          <span class="db-row__body"><span class="db-p-s db-semibold">फोटो या वीडियो जोड़ें</span><span class="db-caption db-t3">एक ही जोड़ सकते हैं (ज़रूरी नहीं)</span></span>${icon('chevron_right')}</button>`;
+    const preview = m ? '' : `<div id="tcFoldWrap">${this.foldHTML()}</div>`;
+    $('#postBody').innerHTML = `${editInfo()}
+      <div class="cr-author"><img src="${photoSrc() || art('user')}" alt=""><span class="cr-author__body"><span class="db-p-s db-semibold">${esc(P.name || 'आप')}</span><span class="db-caption db-t3">${LANG_NAME[P.lang]} में पोस्ट होगी</span></span></div>
+      <label class="cr-compose"><span class="db-label">आपके भाव *</span>
+        <textarea class="db-input" id="postText" rows="1" maxlength="${LIMITS.text}" placeholder="आज आपके मन में क्या भाव है? कोई अनुभव, दोहा या सुविचार लिखें…" oninput="Post.input(this)">${esc(S.text)}</textarea>
+        <span class="cr-count" id="postCount">${n}/${LIMITS.text}</span></label>
+      ${attach}
+      ${preview}
+      ${tagsBlock('post')}`;
+    autosize($('#postText'));
+    this.foot();
+  },
+  // closed by default; opens by itself once the user has typed text without media (until they close it themselves)
+  foldHTML() {
+    const nm = TEXT_STYLES.find(x => x[0] === S.textStyle)[1];
+    return `<div class="cr-fold tc--${S.textStyle}${S.previewOpen ? ' is-open' : ''}">
+        <button class="cr-fold__head" aria-expanded="${S.previewOpen}" aria-controls="tcFold" onclick="Post.fold()"><span class="cr-fold__dot" aria-hidden="true"></span>
+          <span class="db-row__body"><span class="db-p-s db-semibold">बिना फोटो के ऐसी दिखेगी</span><span class="db-caption db-t3">${S.previewOpen ? 'रंग चुनें' : `रंग: ${nm} · देखने के लिए खोलें`}</span></span>${icon('expand_more')}</button>
+        ${S.previewOpen ? `<div class="cr-fold__body" id="tcFold">
+          <div style="justify-self:center">${textCard(294)}</div>
+          <div class="cr-styles" role="radiogroup" aria-label="कार्ड का रंग">${TEXT_STYLES.map(([id, n]) => `<button class="cr-swatch tc--${id}${S.textStyle === id ? ' is-selected' : ''}" role="radio" aria-checked="${S.textStyle === id}" aria-label="${n}" onclick="Post.style('${id}')"></button>`).join('')}</div>
+        </div>` : ''}
+      </div>`;
+  },
+  input(el) {
+    autosize(el);
+    S.text = el.value; $('#postCount').textContent = `${[...S.text].length}/${LIMITS.text}`;
+    const want = !!S.text.trim() && !S.media;
+    if (!S.previewTouched && want !== S.previewOpen && $('#tcFoldWrap')) { S.previewOpen = want; $('#tcFoldWrap').innerHTML = this.foldHTML(); }
+    else { const tc = $('#postBody .tc'); if (tc) tc.outerHTML = textCard(294); }
+    this.foot();
+  },
+  style(id) { S.textStyle = id; const sc = $('#v-post .view__scroll'), y = sc.scrollTop; this.render(); sc.scrollTop = y; },
+  fold() { S.previewOpen = !S.previewOpen; S.previewTouched = true; const sc = $('#v-post .view__scroll'), y = sc.scrollTop; this.render(); sc.scrollTop = y; },
+  removeMedia() { S.media = null; S.format = 'text'; if (!S.previewTouched) S.previewOpen = !!S.text.trim(); this.render(); },
+  foot() {
+    const needText = !S.text.trim(), needTags = !S.tags.length;
+    setFoot('#postSend', '#postHelp', !needText && !needTags,
+      needText && needTags ? 'भेजने के लिए अपने भाव लिखें और कम से कम 1 टैग चुनें' : needText ? 'भेजने के लिए अपने भाव लिखें — यह ज़रूरी है' : 'भेजने के लिए कम से कम 1 टैग चुनें');
+  },
+};
+
+/* ---------- Camera (live camera when allowed, sample scene otherwise) ---------- */
+const Camera = {
+  stream: null,
+  async start() {
+    $('#camGalThumb').src = art('rangoli');
+    $('#camFeed').innerHTML = `<img src="${art('mandir')}" alt="कैमरा में घर का मंदिर">`;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      if (cur !== 'camera') { this.stop(); return; }
+      $('#camFeed').innerHTML = '<video autoplay playsinline muted></video>';
+      $('#camFeed video').srcObject = this.stream;
+    } catch (e) { /* permission denied or no camera — keep the sample scene */ }
+  },
+  stop() { this.stream?.getTracks().forEach(t => t.stop()); this.stream = null; },
+  close() { this.stop(); back(); },
+  snap() {
+    $('#camFlash').classList.remove('is-on'); void $('#camFlash').offsetWidth; $('#camFlash').classList.add('is-on');
+    let src = art('mandir'), real = false;
+    const v = $('#camFeed video');
+    if (v && v.videoWidth) { const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0); src = c.toDataURL('image/jpeg', .85); real = true; }
+    setTimeout(() => {
+      this.stop();
+      S.media = { kind: 'image', sample: !real, id: 'mandir', name: 'कैमरा फोटो', size: 2.4, src }; S.format = 'image';
+      // drop camera + gallery from history, land back on the compose screen
+      while (stack.length && ['camera', 'gallery'].includes(stack[stack.length - 1])) stack.pop();
+      if (stack[stack.length - 1] === 'post') stack.pop();
+      go('post', { replace: true }); toast('फोटो जुड़ गई');
+    }, 380);
+  },
+};
+
+/* ---------- Submit + result ---------- */
+const Submit = {
+  ask() {
+    const m = S.media, left = S.post ? LIMITS.resubmits - S.post.resubmits - (S.post.status === 'rejected' ? 1 : 0) : null;
+    const thumb = S.type === 'bhajan' ? (S.cover ? `<span class="crop-mini" style="transform:scale(${56 / 296})"><img src="${S.cover.src}" alt="" style="width:${S.cover.bw}px;height:${S.cover.bh}px;transform:${cropTf(S.cover)}"></span>` : icon('music_note', 24))
+      : m ? `<img src="${m.kind === 'audio' ? '' : m.src}" alt="">` : textCard(56);
+    const what = S.type === 'bhajan' ? S.title : S.type === 'reel' ? S.title : S.type === 'post' ? S.text : S.caption;
+    const extra = `<div class="cr-sum"><span class="cr-sum__thumb">${thumb}</span><span class="cr-sum__body">
+        <span class="db-p-s db-semibold db-clamp-1">${esc(what.trim() || TYPE_NAME[S.type])}</span>
+        <span class="cr-sum__row"><b>${TYPE_NAME[S.type]}</b>·<span>${LANG_NAME[P.lang]} में</span></span>
+        <span class="cr-sum__row db-clamp-1" style="color:var(--db-primary-700)">${S.tags.map(t => '#' + TAG_NAME[t]).join(' ')}</span></span></div>`;
+    const body = S.editing && S.post.status === 'rejected'
+      ? `जांच पूरी होने तक बदलाव नहीं कर पाएंगे। इसके बाद आप ${left} बार और भेज सकेंगे।`
+      : S.editing ? 'जांच पूरी होने तक बदलाव नहीं कर पाएंगे। तब तक पुरानी पोस्ट दिखती रहेगी।'
+      : 'Daily Bhakti टीम इसकी जांच करेगी। जांच पूरी होने तक आप इसमें बदलाव नहीं कर पाएंगे।';
+    Confirm.open({ label: '13_Sheet/ConfirmSubmit', icon: 'send', title: S.editing ? 'बदलाव जांच के लिए भेजें?' : 'स्वीकृति के लिए भेजें?', body, extra,
+      yes: 'हाँ, भेजें', no: 'एक बार और देखें', onYes: () => Submit.send() });
+  },
+  send() {
+    const btn = $('#v-' + cur + ' .view__foot .db-btn'); btn.classList.add('is-loading');
+    Bhajan.stop();
+    setTimeout(() => {
+      btn.classList.remove('is-loading');
+      const wasEdit = S.editing;
+      if (!S.post) S.post = { status: 'pending', resubmits: 0, sentAt: Date.now() };
+      else { if (S.post.status === 'rejected') S.post.resubmits++; S.post.status = 'pending'; S.post.reason = null; S.post.sentAt = Date.now(); S.post.wasPosted = S.post.wasPosted || false; }
+      S.editing = false; S.snap = null; stack.length = 0; go('result', { replace: true });
+      toast(wasEdit ? 'बदलाव जांच के लिए भेज दिए गए' : 'जांच के लिए भेज दी गई');
+    }, 700);
+  },
+};
+const Team = {
+  approve() { if (!S.post || S.post.status !== 'pending') return; S.post.status = 'posted'; S.post.wasPosted = true; S.post.reason = null; S.editing = false; if (cur !== 'result') { stack.length = 0; go('result', { replace: true }); } else { Result.render(); label(); renderProto(); } toast('आपकी रचना अब सबको दिख रही है'); },
+  reject(r) { if (!S.post || S.post.status !== 'pending') return; S.post.status = 'rejected'; S.post.reason = r; S.editing = false; if (cur !== 'result') { stack.length = 0; go('result', { replace: true }); } else { Result.render(); label(); renderProto(); } toast('Daily Bhakti टीम का जवाब आया', 'notifications'); },
+};
+const Result = {
+  render() {
+    const p = S.post, st = p.status;
+    const left = LIMITS.resubmits - p.resubmits;
+    const head = {
+      pending: { ic: 'hourglass_top', t: 'स्वीकृति बाकी है', b: p.wasPosted ? 'आपके बदलाव जांच में हैं। तब तक पुरानी पोस्ट सबको दिख रही है।' : 'Daily Bhakti टीम आपकी रचना देख रही है। आमतौर पर 24 घंटे में जवाब मिल जाता है।' },
+      posted:  { ic: 'check_circle', t: 'पोस्ट हो गई', b: `${g('आपका', 'आपकी')} ${TYPE_NAME[S.type]} अब ${LANG_NAME[P.lang]} के सब भक्तों को ${g('दिख रहा', 'दिख रही')} है।` },
+      rejected:{ ic: 'error', t: 'स्वीकार नहीं हुई', b: left > 0 ? 'नीचे दिया कारण ठीक करके दोबारा भेजें।' : 'आप यह रचना 3 बार भेज चुके हैं। अब नई रचना बनाएं।' },
+    }[st];
+    const steps = [['send', 'भेजी गई', 'is-done'], ['review', 'टीम की जांच', st === 'pending' ? 'is-now' : 'is-done'], ['live', st === 'rejected' ? 'स्वीकार नहीं' : 'पोस्ट हुई', st === 'posted' ? 'is-done' : st === 'rejected' ? 'is-fail' : '']];
+    const stepIc = c => c === 'is-done' ? 'check_circle' : c === 'is-now' ? 'pending' : c === 'is-fail' ? 'cancel' : 'radio_button_unchecked';
+    $('#resultBody').innerHTML = `
+      <div class="cr-state cr-state--${st}" role="status">
+        <div class="cr-state__head"><span class="cr-state__icon">${icon(head.ic, 24)}</span><div><h2>${head.t}</h2><span class="db-caption db-t2">${TYPE_NAME[S.type]} · ${st === 'pending' ? g('अभी भेजा', 'अभी भेजी') : st === 'posted' ? g('अभी पोस्ट हुआ', 'अभी पोस्ट हुई') : 'टीम का जवाब'}</span></div></div>
+        <p class="db-p-s db-t2">${head.b}</p>
+        ${st === 'rejected' ? `<div class="cr-reason"><span class="cr-reason__k">कारण: ${REASONS[p.reason].k}</span><span class="db-p-s db-t2">${REASONS[p.reason].note}</span><span class="db-caption db-t3">— Daily Bhakti टीम</span></div>` : ''}
+        <div class="cr-steps">${steps.map(([, l, c], i) => `${i ? '<span class="cr-step__line"></span>' : ''}<span class="cr-step ${c}">${icon(stepIc(c), 16)}${l}</span>`).join('')}</div>
+      </div>
+      ${feedCard()}
+      ${st === 'pending' ? `<p class="db-caption db-t3" style="margin:0;text-align:center">जवाब आने पर हम आपको सूचना भेजेंगे।</p>` : ''}`;
+    const foot = $('#resultFoot');
+    if (st === 'pending') foot.innerHTML = `<button class="db-btn db-btn--outline db-btn--block cr-lock" disabled>${icon('lock', 20)}बदलाव करें</button><span class="db-helper">जांच पूरी होने के बाद ही बदलाव कर सकते हैं।</span>`;
+    else if (st === 'posted') foot.innerHTML = `<button class="db-btn db-btn--outline db-btn--block" onclick="Result.edit()">${icon('edit', 20)}बदलाव करें</button><span class="db-helper">बदलाव दोबारा जांच के बाद दिखेंगे</span>`;
+    else foot.innerHTML = left > 0
+      ? `<button class="db-btn db-btn--block" onclick="Result.edit()">${icon('edit', 20)}बदलाव करें</button><span class="db-helper">आप ${left} बार और भेज सकते हैं।</span>`
+      : `<button class="db-btn db-btn--block" onclick="Demo.reset()">नई रचना बनाएं</button>`;
+  },
+  edit() {
+    if (locked()) return;
+    S.snap = JSON.parse(JSON.stringify({ media: S.media, frame: S.frame, caption: S.caption, title: S.title, text: S.text, textStyle: S.textStyle, tags: S.tags, cover: S.cover }));
+    S.editing = true; stack.length = 0;
+    go({ status: 'details', reel: 'details', bhajan: 'bhajan', post: 'post' }[S.type]);
+  },
+};
+function feedCard() {
+  const m = S.media, st = S.post.status, live = st === 'posted', canEdit = st !== 'pending' && !(st === 'rejected' && S.post.resubmits >= LIMITS.resubmits);
+  const edit = canEdit ? `<button class="db-round cr-feed__edit" aria-label="बदलाव करें" onclick="Result.edit()">${icon('edit', 20)}</button>` : '';
+  const vid = (src, cls) => `<video class="cr-feed__fill${cls}" src="${src}" muted loop playsinline autoplay></video>`;
+  const sound = `<span class="db-round cr-feed__sound" aria-hidden="true">${icon('volume_off', 20)}</span>`;
+  let media = '';
+  if (S.type === 'status') media = frameStage({ w: 284, anim: true, feed: true, playing: true }) + (m.kind === 'video' ? sound : '');
+  else if (S.type === 'reel') media = (m.sample ? `<img class="cr-feed__fill" src="${m.src}" alt="">` : vid(m.src, '')) + `<span class="db-tag db-num cr-feed__dur">${icon('play_arrow', 16, ' db-icon--fill')}&nbsp;${dur(m.dur || 0)}</span>` + sound;
+  else if (S.type === 'bhajan') media = `<div class="cr-feed__bhajan">${S.cover ? coverThumb(284) : `<img src="${art('krishna')}" alt="Daily Bhakti का कवर" style="object-position:30% 50%">`}<span class="cr-feed__scrim"></span>
+      <div class="cr-feed__bhajan-bar"><span class="db-play">${icon('play_arrow', 24, ' db-icon--fill')}</span><span class="db-row__body"><span class="db-p-m db-semibold db-clamp-1">${esc(S.title)}</span><span class="db-caption db-num">${esc(P.name || 'आप')} · ${dur(m.dur || 0)}</span></span></div></div>`;
+  else media = m ? (m.kind === 'video' && !m.sample ? vid(m.src, ' is-45') + sound : `<img class="cr-feed__fill is-45" src="${m.src}" alt="">`) : textCard(284);
+  const text = S.type === 'reel' ? S.title : S.type === 'post' ? (m ? S.text : '') : S.type === 'status' ? S.caption : '';
+  return `<article class="cr-feed">
+    <div class="cr-feed__head"><span class="cr-feed__av"><img src="${photoSrc() || art('user')}" alt=""></span><span class="cr-feed__title">${TYPE_NAME[S.type]}</span>
+      <button class="db-icon-btn cr-feed__more" aria-label="और विकल्प" onclick="toast('${live ? 'विकल्प' : 'पोस्ट होने के बाद'}','more_horiz')">${icon('more_horiz')}</button></div>
+    <div class="cr-feed__media">${media}${edit}</div>
+    <div class="cr-feed__text">${text ? `<p class="db-p-s">${esc(text)}</p>` : ''}${S.tags.length ? `<div class="cr-feed__tags">${S.tags.map(t => '#' + TAG_NAME[t]).join(' ')}</div>` : ''}
+      <span class="cr-feed__lang">${icon('translate', 16)}${LANG_NAME[P.lang]} में · ${live ? `${LANG_NAME[P.lang]} भक्तों को ${g('दिख रहा', 'दिख रही')} है` : `पोस्ट होने पर ${LANG_NAME[P.lang]} भक्तों को ${g('दिखेगा', 'दिखेगी')}`}</span></div>
+    <div class="cr-feed__actions">
+      <button class="db-like" ${live ? '' : 'disabled'} aria-label="पसंद">${icon('favorite')}<span class="db-num">0</span></button>
+      <button class="db-like" ${live ? '' : 'disabled'} aria-label="सेव करें">${icon('bookmark')}</button>
+      <button class="db-like" ${live ? '' : 'disabled'} aria-label="डाउनलोड">${icon('download')}</button>
+      <button class="db-btn" ${live ? '' : 'disabled'} onclick="toast('WhatsApp पर शेयर करें')">शेयर करें</button>
+    </div>
+  </article>`;
+}
+
+/* ---------- Demo + prototype panel ---------- */
+const Demo = {
+  leave() { if (!S.type || !hasProgress() || S.post) { S = fresh(); S.type = 'status'; pickSample('image', 'mandir'); S.tags = ['ganesh']; stack.length = 0; stack.push('type', 'statusFormat', 'gallery'); cur = null; go('frame', { replace: true, jump: true }); stack.length = 0; stack.push('type'); } Leave.ask('flow'); },
+  confirm() { if (!['details', 'bhajan', 'post'].includes(cur) || !S.tags.length) { S = fresh(); S.type = 'status'; pickSample('image', 'mandir'); S.tags = ['ganesh', 'good-morning']; stack.length = 0; stack.push('type'); cur = null; go('details', { replace: true }); stack.length = 0; stack.push('type'); } Submit.ask(); },
+  toggleProfile() { if (P.name || P.photo) { P.name = ''; P.photo = ''; } else { P = { ...P, ...PROFILE_FULL }; } Profile.draft = null; Render[cur]?.(); renderProto(); },
+  cycleLang() { P.lang = (P.lang + 1) % LANGS.length; Render[cur]?.(); renderProto(); },
+  reset() { Bhajan.stop(); Camera.stop(); S = fresh(); Crop.src = null; Gallery.hidden = {}; Profile.draft = null; stack.length = 0; cur = null; Sheet.close(); go('type', { replace: true }); },
+};
+function renderProto() {
+  $('#protoNav').innerHTML = SCREENS.map(([id, l]) => `<button class="proto__btn${id === cur ? ' is-active' : ''}" onclick="go('${id}')">${l}</button>`).join('');
+  const pending = S.post?.status === 'pending';
+  ['tApprove', 'tRejectTags', 'tRejectCopy', 'tRejectQual'].forEach(id => $('#' + id).disabled = !pending);
+  $('#pToggle').textContent = P.name || P.photo ? 'Profile: photo + name set → clear' : 'Profile: empty → fill';
+  $('#pLang').textContent = `Profile language: ${LANG_NAME[P.lang]} → next`;
+  const m = S.media;
+  $('#protoState').innerHTML = `Type: ${S.type ? TYPE_NAME[S.type] : '—'} · ${S.format || '—'}<br>
+    Media: ${m ? `${esc(m.name)} (${mb(m.size)}${m.dur ? ', ' + dur(m.dur) : ''})` : '—'}<br>
+    ${S.type === 'status' ? `Frame: ${S.frame ? FRAMES.find(f => f.id === S.frame).name : 'बिना फ्रेम'}<br>` : ''}
+    Tags: ${S.tags.map(t => TAG_NAME[t]).join(', ') || '—'}<br>
+    Post: ${S.post ? `${S.post.status}${S.post.reason ? ' (' + S.post.reason + ')' : ''} · resubmits ${S.post.resubmits}/${LIMITS.resubmits}` : 'not sent'}${S.editing ? ' · editing' : ''}<br>
+    Profile: ${esc(P.name || '—')} · ${P.photo ? 'photo' : 'no photo'} · ${LANG_NAME[P.lang]}`;
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && Sheet.cur) Sheet.close(); });
+
+const hash = location.hash.slice(1);
+go(SCREENS.some(s => s[0] === hash) ? hash : 'type', { replace: true });
+</script>
+</body>
+</html>
